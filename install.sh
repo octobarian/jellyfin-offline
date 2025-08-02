@@ -35,12 +35,14 @@ if [ "$EUID" -ne 0 ]; then
     error "Please run this script as root (use sudo)"
 fi
 
-# Get the directory where the script is located
+# Get the directory where the script is located (source code)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DIR="$SCRIPT_DIR"
+
+# Application will be installed to /opt/rv-media-player
+APP_DIR="/opt/rv-media-player"
 
 # Configuration
-MEDIA_DIR="$APP_DIR/media"
+MEDIA_DIR="/media"  # Use system media directory
 LOGS_DIR="$APP_DIR/logs"
 CONFIG_DIR="$APP_DIR/config"
 VENV_DIR="$APP_DIR/venv"
@@ -133,25 +135,45 @@ apt install -y \
     libssl-dev \
     || error "Failed to install Python development packages"
 
-# Step 2: Create media user and directory structure
-log "Creating media user and directory structure..."
+# Step 2: Create application directory structure
+log "Creating application directory structure..."
+
+# Create application directory first
+mkdir -p "$APP_DIR"
+mkdir -p "$LOGS_DIR" "$CONFIG_DIR" "$APP_DIR/data" "$APP_DIR/backups"
+
+# Create media directories
+mkdir -p "$MEDIA_DIR/movies" "$MEDIA_DIR/tv-shows" "$MEDIA_DIR/downloads" "$MEDIA_DIR/local"
 
 # Create media user if it doesn't exist
 if ! id "media" &>/dev/null; then
     log "Creating media user..."
-    useradd -r -s /bin/bash -d "$APP_DIR" -m media
+    # Create user without -m flag to avoid home directory creation issues
+    useradd -r -s /bin/bash -d "$APP_DIR" media
     usermod -a -G audio,video,dialout,plugdev media
 else
     log "Media user already exists"
 fi
 
-# Create directory structure
-mkdir -p "$MEDIA_DIR/movies" "$MEDIA_DIR/tv-shows" "$MEDIA_DIR/downloads" "$LOGS_DIR"
-mkdir -p "$CONFIG_DIR" "$APP_DIR/data" "$APP_DIR/backups"
-chmod 755 "$MEDIA_DIR" "$LOGS_DIR" "$CONFIG_DIR"
-chown -R media:media "$MEDIA_DIR" "$LOGS_DIR" "$CONFIG_DIR" "$APP_DIR"
+# Step 3: Copy application files
+log "Copying application files..."
+# Copy all application files except installation files and git directory
+cp -r "$SCRIPT_DIR/app" "$APP_DIR/"
+cp -r "$SCRIPT_DIR/static" "$APP_DIR/"
+cp -r "$SCRIPT_DIR/templates" "$APP_DIR/"
+cp -r "$SCRIPT_DIR/systemd" "$APP_DIR/"
+cp -r "$SCRIPT_DIR/config" "$APP_DIR/"
+cp "$SCRIPT_DIR/requirements.txt" "$APP_DIR/"
+cp "$SCRIPT_DIR/setup_config.sh" "$APP_DIR/"
 
-# Step 3: Set up Python virtual environment
+# Don't copy installation files, git directory, or other development files
+# install.sh, .git/, .gitignore, README files stay in source directory
+
+# Set proper ownership and permissions
+chmod 755 "$APP_DIR" "$MEDIA_DIR" "$LOGS_DIR" "$CONFIG_DIR"
+chown -R media:media "$APP_DIR" "$MEDIA_DIR"
+
+# Step 4: Set up Python virtual environment
 log "Setting up Python virtual environment..."
 if [ -d "$VENV_DIR" ]; then
     warning "Virtual environment already exists. Recreating..."
@@ -192,7 +214,7 @@ if [ -f "$APP_DIR/requirements.txt" ]; then
     sudo -u media bash -c "source '$VENV_DIR/bin/activate' && pip install -r '$APP_DIR/requirements.txt'"
 fi
 
-# Step 4: Set up configuration
+# Step 5: Set up configuration
 log "Setting up configuration..."
 if [ ! -f "$CONFIG_DIR/app_config.json" ]; then
     log "Creating default configuration..."
@@ -207,10 +229,11 @@ if [ ! -f "$CONFIG_DIR/app_config.json" ]; then
   "jellyfin_username": "",
   "jellyfin_api_key": "",
   "local_media_paths": [
-    "media/movies",
-    "media/tv-shows"
+    "/media/movies",
+    "/media/tv-shows",
+    "/media/local"
   ],
-  "download_directory": "media/downloads",
+  "download_directory": "/media/downloads",
   "vlc_path": "/usr/bin/vlc",
   "auto_launch": true,
   "fullscreen_browser": true
@@ -220,7 +243,7 @@ EOF
     chown media:media "$CONFIG_DIR/app_config.json"
 fi
 
-# Step 5: Create systemd service for auto-launch
+# Step 6: Create systemd service for auto-launch
 log "Creating systemd service for auto-launch..."
 cat > "$SYSTEMD_SERVICE_FILE" << EOF
 [Unit]
@@ -269,7 +292,7 @@ chmod 644 "$SYSTEMD_SERVICE_FILE"
 systemctl daemon-reload
 systemctl enable rv-media-player.service
 
-# Step 6: Create run script
+# Step 7: Create run script
 log "Creating run script..."
 cat > "$APP_DIR/run.sh" << EOF
 #!/bin/bash
@@ -281,7 +304,7 @@ EOF
 chmod +x "$APP_DIR/run.sh"
 chown media:media "$APP_DIR/run.sh"
 
-# Step 7: Orange Pi specific optimizations
+# Step 8: Orange Pi specific optimizations
 log "Applying Orange Pi optimizations..."
 
 # Create optimization script
@@ -410,7 +433,7 @@ chmod 644 "/etc/systemd/system/rv-media-player-optimize.service"
 systemctl daemon-reload
 systemctl enable rv-media-player-optimize.service
 
-# Step 8: Create installation test script
+# Step 9: Create installation test script
 log "Creating installation test script..."
 cat > "$APP_DIR/test_installation.sh" << EOF
 #!/bin/bash
@@ -492,17 +515,17 @@ chown media:media "$APP_DIR/setup_config.sh"
 # Final steps
 success "RV Media Player installation completed successfully!"
 log "You can now:"
-log "1. Configure the application: ./setup_config.sh"
-log "2. Run the application manually with: ./run.sh"
+log "1. Configure the application: cd $APP_DIR && ./setup_config.sh"
+log "2. Run the application manually with: cd $APP_DIR && ./run.sh"
 log "3. Start the service with: sudo systemctl start rv-media-player"
-log "4. Test the installation with: ./test_installation.sh"
+log "4. Test the installation with: cd $APP_DIR && ./test_installation.sh"
 log "5. Access the web interface at: http://$(hostname -I | awk '{print $1}'):5000"
 
 # Run the test script to verify installation
 log "Running installation tests..."
-"$APP_DIR/test_installation.sh"
+cd "$APP_DIR" && "./test_installation.sh"
 
 echo
 log "Installation complete! Next steps:"
-log "1. Run the configuration script: ./setup_config.sh"
-log "2. See README_ORANGEPI.md for detailed documentation"
+log "1. Run the configuration script: cd $APP_DIR && ./setup_config.sh"
+log "2. See $SCRIPT_DIR/README_ORANGEPI.md for detailed documentation"
