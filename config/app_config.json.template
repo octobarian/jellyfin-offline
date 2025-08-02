@@ -1,0 +1,67 @@
+{
+  "jellyfin_server_url": "",
+  "jellyfin_username": "",
+  "jellyfin_api_key": "",
+  "jellyfin_user_id": "",
+  "local_media_paths": [
+    "/media/movies",
+    "/media/tv-shows",
+    "/media/local"
+  ],
+  "download_directory": "/media/downloads",
+  "vlc_path": "/usr/bin/vlc",
+  "auto_launch": true,
+  "fullscreen_browser": false,
+  "web_interface": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false,
+    "secret_key": "change-this-secret-key-in-production"
+  },
+  "media_scanning": {
+    "auto_scan": true,
+    "scan_interval_minutes": 30,
+    "validate_files": true,
+    "extract_metadata": true,
+    "generate_thumbnails": true
+  },
+  "download_settings": {
+    "max_concurrent_downloads": 3,
+    "download_quality": "1080p",
+    "auto_organize": true,
+    "cleanup_after_download": false
+  },
+  "playback_settings": {
+    "default_player": "vlc",
+    "hardware_acceleration": true,
+    "subtitle_languages": ["en", "eng"],
+    "audio_languages": ["en", "eng"]
+  },
+  "orange_pi_settings": {
+    "enable_optimizations": true,
+    "cpu_governor": "performance",
+    "gpu_memory_split": 128,
+    "disable_bluetooth": true,
+    "disable_wifi_power_save": true
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "/opt/rv-media-player/logs/app.log",
+    "max_size_mb": 10,
+    "backup_count": 5
+  },
+  "security": {
+    "enable_authentication": false,
+    "username": "",
+    "password_hash": "",
+    "session_timeout_minutes": 60,
+    "allowed_ips": []
+  },
+  "advanced": {
+    "cache_size_mb": 256,
+    "thumbnail_cache_size_mb": 128,
+    "database_path": "/opt/rv-media-player/data/media.db",
+    "backup_config": true,
+    "backup_interval_hours": 24
+  }
+}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}About - RV Media Player{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <h1>{{ app_info.name }}</h1>
+    
+    <div style="background-color: #2d2d2d; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
+        <h2>About</h2>
+        <p>{{ app_info.description }}</p>
+        <p><strong>Version:</strong> {{ app_info.version }}</p>
+    </div>
+    
+    <div style="background-color: #2d2d2d; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
+        <h2>Features</h2>
+        <ul style="padding-left: 2rem; line-height: 1.8;">
+            <li>Unified media library from local storage and Jellyfin server</li>
+            <li>Offline operation with local media playback</li>
+            <li>Online streaming from Jellyfin server</li>
+            <li>Media download for offline viewing</li>
+            <li>Touch-friendly web interface</li>
+            <li>VLC integration for media playback</li>
+            <li>Automatic media library synchronization</li>
+            <li>Secure configuration management</li>
+        </ul>
+    </div>
+    
+    <div style="background-color: #2d2d2d; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
+        <h2>System Requirements</h2>
+        <ul style="padding-left: 2rem; line-height: 1.8;">
+            <li>Python 3.8 or higher</li>
+            <li>VLC Media Player</li>
+            <li>Network connectivity (optional for offline operation)</li>
+            <li>Minimum 1GB RAM</li>
+            <li>10GB storage for media cache</li>
+        </ul>
+    </div>
+    
+    <div style="background-color: #2d2d2d; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
+        <h2>Quick Start</h2>
+        <ol style="padding-left: 2rem; line-height: 1.8;">
+            <li>Configure your Jellyfin server connection in <a href="/config" style="color: #4CAF50;">Settings</a></li>
+            <li>Set up local media directories</li>
+            <li>Ensure VLC Media Player is installed</li>
+            <li>Browse and enjoy your media library</li>
+        </ol>
+    </div>
+    
+    <div style="background-color: #2d2d2d; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
+        <h2>Support</h2>
+        <p>For support and troubleshooting:</p>
+        <ul style="padding-left: 2rem; line-height: 1.8;">
+            <li>Check the <a href="/health" style="color: #4CAF50;">system status</a> page</li>
+            <li>Review your <a href="/config" style="color: #4CAF50;">configuration settings</a></li>
+            <li>Check application logs in the logs directory</li>
+            <li>Ensure all dependencies are properly installed</li>
+        </ul>
+    </div>
+    
+    <div style="text-align: center; margin: 2rem 0;">
+        <a href="/" class="btn">Back to Library</a>
+        <a href="/config" class="btn btn-secondary">Configuration</a>
+    </div>
+</div>
+{% endblock %}

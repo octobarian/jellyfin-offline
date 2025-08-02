@@ -1,0 +1,41 @@
+# RV Media Player Python Dependencies
+
+# Web Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# HTTP Requests
+requests==2.31.0
+urllib3==2.0.7
+
+# Environment and Configuration
+python-dotenv==1.0.0
+PyYAML==6.0.1
+jsonschema==4.19.2
+
+# WSGI Server
+gunicorn==21.2.0
+
+# System and Process Management
+psutil==5.9.6
+watchdog==3.0.0
+schedule==1.2.0
+
+# Media Processing
+python-vlc==3.0.18122
+mutagen==1.47.0
+pymediainfo==6.0.1
+Pillow==10.1.0
+
+# Utilities
+click==8.1.7
+colorama==0.4.6
+tqdm==4.66.1
+humanize==4.8.0
+qrcode[pil]==7.4.2
+
+# Security
+cryptography==41.0.7
+
+# Development and Testing
+pytest==7.4.3

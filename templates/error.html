@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }} - RV Media Player{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 4rem 2rem;">
+    <h1 style="font-size: 4rem; color: #f44336; margin-bottom: 1rem;">{{ error_code }}</h1>
+    <h2 style="margin-bottom: 2rem;">{{ error_message }}</h2>
+    
+    <div style="margin: 2rem 0;">
+        <a href="/" class="btn">Go to Library</a>
+        <a href="/config" class="btn btn-secondary">Check Settings</a>
+    </div>
+    
+    {% if error_code == 503 %}
+    <div style="background-color: #2d2d2d; padding: 2rem; border-radius: 8px; margin-top: 2rem; text-align: left;">
+        <h3>Service Unavailable</h3>
+        <p>The media services are not currently available. This could be due to:</p>
+        <ul style="margin: 1rem 0; padding-left: 2rem;">
+            <li>Configuration issues</li>
+            <li>Missing dependencies</li>
+            <li>Network connectivity problems</li>
+            <li>Service initialization errors</li>
+        </ul>
+        <p>Please check the <a href="/config" style="color: #4CAF50;">configuration settings</a> and try again.</p>
+    </div>
+    {% endif %}
+    
+    {% if error_code == 404 %}
+    <div style="background-color: #2d2d2d; padding: 2rem; border-radius: 8px; margin-top: 2rem; text-align: left;">
+        <h3>Page Not Found</h3>
+        <p>The page you're looking for doesn't exist. You can:</p>
+        <ul style="margin: 1rem 0; padding-left: 2rem;">
+            <li>Go back to the <a href="/" style="color: #4CAF50;">media library</a></li>
+            <li>Check the <a href="/config" style="color: #4CAF50;">configuration</a></li>
+            <li>View the <a href="/health" style="color: #4CAF50;">system status</a></li>
+        </ul>
+    </div>
+    {% endif %}
+    
+    {% if error_code == 500 %}
+    <div style="background-color: #2d2d2d; padding: 2rem; border-radius: 8px; margin-top: 2rem; text-align: left;">
+        <h3>Internal Server Error</h3>
+        <p>An unexpected error occurred. This might be temporary. You can:</p>
+        <ul style="margin: 1rem 0; padding-left: 2rem;">
+            <li>Refresh the page and try again</li>
+            <li>Check the <a href="/health" style="color: #4CAF50;">system status</a></li>
+            <li>Review the <a href="/config" style="color: #4CAF50;">configuration</a></li>
+        </ul>
+        <p>If the problem persists, check the application logs for more details.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,1347 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - RV Media Player{% endblock %}
+
+{% block head %}
+<style>
+    .setup-wizard {
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: white;
+    }
+    
+    .setup-wizard h1 {
+        margin: 0 0 1rem 0;
+        font-size: 2rem;
+    }
+    
+    .setup-wizard p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+    
+    .config-section {
+        background-color: #2d2d2d;
+        padding: 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        position: relative;
+        border-left: 4px solid #555;
+        transition: all 0.3s ease;
+    }
+    
+    .config-section.valid {
+        border-left-color: #4CAF50;
+        background-color: #2d3d2d;
+    }
+    
+    .config-section.invalid {
+        border-left-color: #f44336;
+        background-color: #3d2d2d;
+    }
+    
+    .config-section.testing {
+        border-left-color: #2196F3;
+        background-color: #2d2d3d;
+    }
+    
+    .config-overview {
+        margin-bottom: 2rem;
+    }
+    
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .status-card {
+        background-color: #2d2d2d;
+        padding: 1.5rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-left: 4px solid #555;
+        transition: all 0.3s ease;
+    }
+    
+    .status-card.configured {
+        border-left-color: #4CAF50;
+        background-color: #2d3d2d;
+    }
+    
+    .status-card.error {
+        border-left-color: #f44336;
+        background-color: #3d2d2d;
+    }
+    
+    .status-card.checking {
+        border-left-color: #2196F3;
+        background-color: #2d2d3d;
+    }
+    
+    .status-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+    
+    .status-title {
+        font-weight: bold;
+        color: white;
+        margin-bottom: 0.25rem;
+    }
+    
+    .status-subtitle {
+        color: #aaa;
+        font-size: 0.9rem;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+    
+    .section-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #555;
+    }
+    
+    .status-indicator.valid {
+        background-color: #4CAF50;
+    }
+    
+    .status-indicator.invalid {
+        background-color: #f44336;
+    }
+    
+    .status-indicator.testing {
+        background-color: #2196F3;
+        animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .validation-message {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        display: none;
+    }
+    
+    .validation-message.success {
+        background-color: rgba(76, 175, 80, 0.1);
+        border: 1px solid #4CAF50;
+        color: #4CAF50;
+    }
+    
+    .validation-message.error {
+        background-color: rgba(244, 67, 54, 0.1);
+        border: 1px solid #f44336;
+        color: #f44336;
+    }
+    
+    .validation-message.info {
+        background-color: rgba(33, 150, 243, 0.1);
+        border: 1px solid #2196F3;
+        color: #2196F3;
+    }
+    
+    .input-group {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-end;
+    }
+    
+    .input-group input {
+        flex: 1;
+    }
+    
+    .btn-icon {
+        margin-right: 0.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        color: #ffffff;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #555;
+        border-radius: 4px;
+        background-color: #1a1a1a;
+        color: white;
+        font-size: 16px;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #4CAF50;
+    }
+    
+    .form-group .help-text {
+        font-size: 0.9rem;
+        color: #aaa;
+        margin-top: 0.5rem;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+        width: auto;
+    }
+    
+    .test-button {
+        margin-left: 1rem;
+    }
+    
+    .config-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+        .config-actions {
+            flex-direction: column;
+        }
+        
+        .test-button {
+            margin-left: 0;
+            margin-top: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Setup Wizard Header -->
+<div class="setup-wizard">
+    <h1>🚐 RV Media Player Setup</h1>
+    <p>Configure your media server, local directories, and playback settings for the perfect RV entertainment experience.</p>
+</div>
+
+<!-- Configuration Status Overview -->
+<div class="config-overview" id="configOverview">
+    <div class="status-grid">
+        <div class="status-card" id="jellyfinStatus">
+            <div class="status-icon">🌐</div>
+            <div class="status-text">
+                <div class="status-title">Jellyfin Server</div>
+                <div class="status-subtitle">Not configured</div>
+            </div>
+        </div>
+        <div class="status-card" id="mediaStatus">
+            <div class="status-icon">📁</div>
+            <div class="status-text">
+                <div class="status-title">Media Directories</div>
+                <div class="status-subtitle">Not configured</div>
+            </div>
+        </div>
+        <div class="status-card" id="vlcStatus">
+            <div class="status-icon">🎬</div>
+            <div class="status-text">
+                <div class="status-title">VLC Player</div>
+                <div class="status-subtitle">Checking...</div>
+            </div>
+        </div>
+        <div class="status-card" id="apiStatus">
+            <div class="status-icon">🔑</div>
+            <div class="status-text">
+                <div class="status-title">API Keys</div>
+                <div class="status-subtitle">Not configured</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="configForm">
+    <div class="config-section" id="jellyfinSection">
+        <div class="section-header">
+            <h2>🌐 Jellyfin Server</h2>
+            <div class="section-status">
+                <div class="status-indicator" id="jellyfinIndicator"></div>
+                <span id="jellyfinStatusText">Not configured</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="jellyfinUrl">Server URL</label>
+            <div class="input-group">
+                <input type="url" id="jellyfinUrl" name="jellyfin_server_url" 
+                       value="{{ config.jellyfin_server_url }}" 
+                       placeholder="http://your-jellyfin-server:8096">
+                <button type="button" class="btn btn-secondary" onclick="testJellyfinConnection()">
+                    <span class="btn-icon">🔗</span>Test
+                </button>
+            </div>
+            <div class="help-text">Full URL to your Jellyfin server including port</div>
+            <div class="validation-message" id="urlValidation"></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="jellyfinUsername">Username</label>
+            <input type="text" id="jellyfinUsername" name="jellyfin_username" 
+                   value="{{ config.jellyfin_username }}" 
+                   placeholder="Your Jellyfin username">
+            <div class="help-text">Your Jellyfin username (optional if using API key)</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="jellyfinApiKey">API Key</label>
+            <div class="input-group">
+                <input type="password" id="jellyfinApiKey" name="jellyfin_api_key" 
+                       value="{{ config.jellyfin_api_key }}" 
+                       placeholder="Your Jellyfin API key">
+                <button type="button" class="btn btn-secondary" onclick="generateApiKeyGuide()">
+                    <span class="btn-icon">❓</span>Help
+                </button>
+            </div>
+            <div class="help-text">Generate an API key in Jellyfin Dashboard > API Keys</div>
+            <div class="validation-message" id="apiKeyValidation"></div>
+        </div>
+    </div>
+    
+    <div class="config-section" id="mediaSection">
+        <div class="section-header">
+            <h2>📁 Local Media</h2>
+            <div class="section-status">
+                <div class="status-indicator" id="mediaIndicator"></div>
+                <span id="mediaStatusText">Not configured</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="mediaPaths">Media Directories</label>
+            <div class="input-group">
+                <textarea id="mediaPaths" name="local_media_paths" rows="4" 
+                          placeholder="One directory path per line">{% for path in config.local_media_paths %}{{ path }}
+{% endfor %}</textarea>
+                <button type="button" class="btn btn-secondary" onclick="validateMediaDirectories()">
+                    <span class="btn-icon">🔍</span>Validate
+                </button>
+            </div>
+            <div class="help-text">Directories to scan for local media files (one per line)</div>
+            <div class="validation-message" id="mediaPathsValidation"></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="downloadDir">Download Directory</label>
+            <div class="input-group">
+                <input type="text" id="downloadDir" name="download_directory" 
+                       value="{{ config.download_directory }}" 
+                       placeholder="media/downloads">
+                <button type="button" class="btn btn-secondary" onclick="createDownloadDir()">
+                    <span class="btn-icon">📁</span>Create
+                </button>
+            </div>
+            <div class="help-text">Directory where downloaded media will be stored</div>
+            <div class="validation-message" id="downloadDirValidation"></div>
+        </div>
+    </div>
+    
+    <div class="config-section" id="vlcSection">
+        <div class="section-header">
+            <h2>🎬 VLC Media Player</h2>
+            <div class="section-status">
+                <div class="status-indicator" id="vlcIndicator"></div>
+                <span id="vlcStatusText">Checking...</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="vlcPath">VLC Path (Optional)</label>
+            <div class="input-group">
+                <input type="text" id="vlcPath" name="vlc_path" 
+                       value="{{ config.vlc_path }}" 
+                       placeholder="Leave empty for auto-detection">
+                <button type="button" class="btn btn-secondary" onclick="testVlcInstallation()">
+                    <span class="btn-icon">🔍</span>Test
+                </button>
+            </div>
+            <div class="help-text">Custom path to VLC executable (leave empty for auto-detection)</div>
+            <div class="validation-message" id="vlcValidation"></div>
+        </div>
+        
+        <div class="form-group">
+            <div class="help-text">
+                <strong>VLC Installation Guide:</strong><br>
+                • <strong>Windows:</strong> Download from <a href="https://www.videolan.org/vlc/" target="_blank">videolan.org</a><br>
+                • <strong>Linux:</strong> <code>sudo apt install vlc</code> or <code>sudo pacman -S vlc</code><br>
+                • <strong>macOS:</strong> Download from <a href="https://www.videolan.org/vlc/" target="_blank">videolan.org</a> or <code>brew install vlc</code>
+            </div>
+        </div>
+    </div>
+    
+    <div class="config-section">
+        <h2>System Settings</h2>
+        
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="autoLaunch" name="auto_launch" 
+                       {% if config.auto_launch %}checked{% endif %}>
+                <label for="autoLaunch">Auto-launch on system startup</label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="fullscreenBrowser" name="fullscreen_browser" 
+                       {% if config.fullscreen_browser %}checked{% endif %}>
+                <label for="fullscreenBrowser">Launch browser in fullscreen mode</label>
+            </div>
+        </div>
+    </div>
+    
+    <div class="config-actions">
+        <button type="submit" class="btn">Save Configuration</button>
+        <button type="button" class="btn btn-secondary" onclick="resetConfig()">Reset to Defaults</button>
+        <button type="button" class="btn btn-secondary" onclick="loadCurrentConfig()">Reload</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Configuration Management System for Task #14
+let configState = {
+    jellyfin: { valid: false, tested: false },
+    media: { valid: false, validated: false },
+    vlc: { valid: false, tested: false },
+    api: { valid: false }
+};
+
+// Track if API key is already configured (loaded from server)
+let hasExistingApiKey = false;
+
+// Validation state tracker to prevent recursive calls
+let validationInProgress = {
+    jellyfinUrl: false,
+    jellyfinConfig: false,
+    mediaPaths: false,
+    downloadDir: false,
+    vlcPath: false
+};
+
+// Initialize configuration interface
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if API key is initially set (either masked or encrypted)
+    const apiKeyInput = document.getElementById('jellyfinApiKey');
+    if (apiKeyInput && apiKeyInput.value) {
+        const value = apiKeyInput.value.trim();
+        // Check if it's masked (***) or looks like an encrypted key (starts with gAAAAAB)
+        if (value === '***' || value.startsWith('gAAAAAB') || value.length > 50) {
+            hasExistingApiKey = true;
+            // Replace encrypted key with masked value for display
+            if (value.startsWith('gAAAAAB') || value.length > 50) {
+                apiKeyInput.value = '***';
+            }
+        }
+    }
+    
+    loadCurrentConfig();
+    initializeValidation();
+    
+    // Delay initial status check to ensure everything is loaded
+    setTimeout(checkInitialStatus, 500);
+});
+
+document.getElementById('configForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await saveConfiguration();
+});
+
+async function saveConfiguration() {
+    const formData = new FormData(document.getElementById('configForm'));
+    
+    // Convert form data to JSON
+    const config = {};
+    for (const [key, value] of formData.entries()) {
+        if (key === 'local_media_paths') {
+            config[key] = value.split('\n').filter(path => path.trim());
+        } else if (key === 'auto_launch' || key === 'fullscreen_browser') {
+            config[key] = true; // Checkbox is checked if present
+        } else {
+            config[key] = value;
+        }
+    }
+    
+    // Handle unchecked checkboxes
+    if (!formData.has('auto_launch')) config.auto_launch = false;
+    if (!formData.has('fullscreen_browser')) config.fullscreen_browser = false;
+    
+    try {
+        const response = await fetch('/config/api/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(config)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showMessage('Configuration saved successfully', 'success');
+        } else {
+            showMessage(data.error || 'Failed to save configuration', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving configuration:', error);
+        showMessage('Failed to save configuration', 'error');
+    }
+}
+
+async function testJellyfinConnection() {
+    const serverUrl = document.getElementById('jellyfinUrl').value;
+    const username = document.getElementById('jellyfinUsername').value;
+    const apiKey = document.getElementById('jellyfinApiKey').value;
+    
+    if (!serverUrl || !apiKey) {
+        showMessage('Please enter server URL and API key', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/config/api/test-jellyfin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                server_url: serverUrl,
+                username: username,
+                api_key: apiKey
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showMessage(`Connection successful! Found ${data.media_count || 'unknown'} media items`, 'success');
+        } else {
+            showMessage(data.error || 'Connection failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        showMessage('Connection test failed', 'error');
+    }
+}
+
+async function testVlcInstallation() {
+    const vlcPath = document.getElementById('vlcPath').value;
+    
+    try {
+        const response = await fetch('/config/api/test-vlc', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                vlc_path: vlcPath
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showMessage(`VLC found at: ${data.vlc_path}`, 'success');
+        } else {
+            showMessage(data.error || 'VLC test failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error testing VLC:', error);
+        showMessage('VLC test failed', 'error');
+    }
+}
+
+async function resetConfig() {
+    if (!confirm('Are you sure you want to reset configuration to defaults? This will remove all current settings.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/config/api/reset', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showMessage('Configuration reset to defaults', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showMessage(data.error || 'Failed to reset configuration', 'error');
+        }
+    } catch (error) {
+        console.error('Error resetting configuration:', error);
+        showMessage('Failed to reset configuration', 'error');
+    }
+}
+
+async function loadCurrentConfig() {
+    try {
+        const response = await fetch('/config/api/current');
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Update form fields
+            document.getElementById('jellyfinUrl').value = data.jellyfin_server_url || '';
+            document.getElementById('jellyfinUsername').value = data.jellyfin_username || '';
+            document.getElementById('jellyfinApiKey').value = data.has_jellyfin_api_key ? '***' : '';
+            document.getElementById('mediaPaths').value = (data.local_media_paths || []).join('\n');
+            document.getElementById('downloadDir').value = data.download_directory || '';
+            document.getElementById('vlcPath').value = data.vlc_path || '';
+            document.getElementById('autoLaunch').checked = data.auto_launch || false;
+            document.getElementById('fullscreenBrowser').checked = data.fullscreen_browser || false;
+            
+            // Track if API key is already configured
+            hasExistingApiKey = data.has_jellyfin_api_key || false;
+            
+            // Validate loaded configuration
+            validateJellyfinConfig();
+            validateMediaPaths();
+            validateDownloadDir();
+            validateVlcPath();
+            
+            showMessage('Configuration reloaded', 'success');
+        } else {
+            showMessage(data.error || 'Failed to load configuration', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading configuration:', error);
+        showMessage('Failed to load configuration', 'error');
+    }
+}
+
+// Utility Functions
+function showValidationMessage(element, message, type) {
+    element.textContent = message;
+    element.className = `validation-message ${type}`;
+    element.style.display = 'block';
+}
+
+function updateSectionStatus(section, isValid, statusText = null) {
+    const indicator = document.getElementById(`${section}Indicator`);
+    const text = document.getElementById(`${section}StatusText`);
+    const card = document.getElementById(`${section}Status`);
+    
+    if (indicator) {
+        indicator.className = `status-indicator ${isValid ? 'valid' : 'invalid'}`;
+    }
+    
+    if (text) {
+        text.textContent = statusText || (isValid ? 'Configured' : 'Not configured');
+    }
+    
+    if (card) {
+        card.className = `status-card ${isValid ? 'configured' : 'error'}`;
+        const subtitle = card.querySelector('.status-subtitle');
+        if (subtitle) {
+            subtitle.textContent = statusText || (isValid ? 'Configured' : 'Not configured');
+        }
+    }
+}
+
+function updateOverallStatus() {
+    const jellyfinCard = document.getElementById('jellyfinStatus');
+    const mediaCard = document.getElementById('mediaStatus');
+    const vlcCard = document.getElementById('vlcStatus');
+    const apiCard = document.getElementById('apiStatus');
+    
+    // Update API status based on Jellyfin configuration
+    const hasApiKey = document.getElementById('jellyfinApiKey').value.trim().length > 0;
+    if (apiCard) {
+        apiCard.className = `status-card ${hasApiKey ? 'configured' : ''}`;
+        const subtitle = apiCard.querySelector('.status-subtitle');
+        if (subtitle) {
+            subtitle.textContent = hasApiKey ? 'Configured' : 'Not configured';
+        }
+    }
+}
+
+function checkInitialStatus() {
+    // Check VLC availability on page load
+    testVlcInstallation();
+    
+    // Validate current form values
+    validateJellyfinConfig();
+    validateMediaPaths();
+    validateDownloadDir();
+    validateVlcPath();
+    
+    updateOverallStatus();
+}
+
+function generateApiKeyGuide() {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: #2d2d2d;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            color: white;
+            position: relative;
+        ">
+            <button onclick="this.closest('div').remove()" style="
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                background: none;
+                border: none;
+                color: #aaa;
+                font-size: 1.5rem;
+                cursor: pointer;
+            ">×</button>
+            
+            <h3 style="margin-top: 0; color: #4CAF50;">🔑 How to Generate a Jellyfin API Key</h3>
+            
+            <ol style="line-height: 1.6;">
+                <li>Open your Jellyfin web interface</li>
+                <li>Go to <strong>Dashboard</strong> → <strong>Advanced</strong> → <strong>API Keys</strong></li>
+                <li>Click <strong>"+ Add API Key"</strong></li>
+                <li>Enter a name like "RV Media Player"</li>
+                <li>Click <strong>"Create"</strong></li>
+                <li>Copy the generated API key</li>
+                <li>Paste it in the API Key field above</li>
+            </ol>
+            
+            <div style="
+                background: rgba(33, 150, 243, 0.1);
+                border: 1px solid #2196F3;
+                padding: 1rem;
+                border-radius: 6px;
+                margin-top: 1rem;
+            ">
+                <strong>💡 Tip:</strong> API keys are more secure than passwords and don't expire unless you delete them.
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close on background click
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+// Removed - using ResponsiveUtils.debounce instead
+
+// Missing Validation Functions Implementation
+
+function initializeValidation() {
+    // Fallback debounce function if ResponsiveUtils is not available
+    const debounce = (window.ResponsiveUtils && window.ResponsiveUtils.debounce) || function(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    };
+    
+    // Set up debounced validation for form inputs
+    const debouncedValidateJellyfinUrl = debounce(validateJellyfinUrl, 500);
+    const debouncedValidateJellyfinConfig = debounce(validateJellyfinConfig, 500);
+    const debouncedValidateMediaPaths = debounce(validateMediaPaths, 500);
+    const debouncedValidateDownloadDir = debounce(validateDownloadDir, 500);
+    const debouncedValidateVlcPath = debounce(validateVlcPath, 500);
+    
+    // Set up event listeners for real-time validation
+    const jellyfinUrl = document.getElementById('jellyfinUrl');
+    const jellyfinUsername = document.getElementById('jellyfinUsername');
+    const jellyfinApiKey = document.getElementById('jellyfinApiKey');
+    const mediaPaths = document.getElementById('mediaPaths');
+    const downloadDir = document.getElementById('downloadDir');
+    const vlcPath = document.getElementById('vlcPath');
+    
+    if (jellyfinUrl) {
+        jellyfinUrl.addEventListener('input', debouncedValidateJellyfinUrl);
+        jellyfinUrl.addEventListener('blur', validateJellyfinUrl);
+    }
+    
+    if (jellyfinUsername) {
+        jellyfinUsername.addEventListener('input', debouncedValidateJellyfinConfig);
+        jellyfinUsername.addEventListener('blur', validateJellyfinConfig);
+    }
+    
+    if (jellyfinApiKey) {
+        jellyfinApiKey.addEventListener('input', debouncedValidateJellyfinConfig);
+        jellyfinApiKey.addEventListener('blur', validateJellyfinConfig);
+        
+        // Handle focus on masked API key field
+        jellyfinApiKey.addEventListener('focus', function() {
+            if (this.value === '***' && hasExistingApiKey) {
+                // Clear the field so user can enter a new key if desired
+                this.value = '';
+                this.placeholder = 'Enter new API key or leave empty to keep existing';
+            }
+        });
+        
+        // Handle when user leaves field empty after clearing masked value
+        jellyfinApiKey.addEventListener('blur', function() {
+            if (this.value === '' && hasExistingApiKey) {
+                // Restore masked value if user didn't enter anything
+                this.value = '***';
+            }
+        });
+    }
+    
+    if (mediaPaths) {
+        mediaPaths.addEventListener('input', debouncedValidateMediaPaths);
+        mediaPaths.addEventListener('blur', validateMediaPaths);
+    }
+    
+    if (downloadDir) {
+        downloadDir.addEventListener('input', debouncedValidateDownloadDir);
+        downloadDir.addEventListener('blur', validateDownloadDir);
+    }
+    
+    if (vlcPath) {
+        vlcPath.addEventListener('input', debouncedValidateVlcPath);
+        vlcPath.addEventListener('blur', validateVlcPath);
+    }
+    
+    console.log('Validation system initialized');
+}
+
+function validateJellyfinUrl() {
+    // Prevent recursive calls
+    if (validationInProgress.jellyfinUrl) return false;
+    validationInProgress.jellyfinUrl = true;
+    
+    const urlInput = document.getElementById('jellyfinUrl');
+    const validationElement = document.getElementById('urlValidation');
+    
+    if (!urlInput || !validationElement) {
+        validationInProgress.jellyfinUrl = false;
+        return false;
+    }
+    
+    const url = urlInput.value.trim();
+    
+    // Clear previous validation
+    validationElement.style.display = 'none';
+    
+    if (!url) {
+        showValidationMessage(validationElement, 'Jellyfin server URL is required', 'error');
+        updateSectionStatus('jellyfin', false, 'URL required');
+        configState.jellyfin.valid = false;
+        validationInProgress.jellyfinUrl = false;
+        return false;
+    }
+    
+    // Basic URL format validation
+    try {
+        const urlObj = new URL(url);
+        
+        // Check if it's HTTP or HTTPS
+        if (!['http:', 'https:'].includes(urlObj.protocol)) {
+            showValidationMessage(validationElement, 'URL must use HTTP or HTTPS protocol', 'error');
+            updateSectionStatus('jellyfin', false, 'Invalid protocol');
+            configState.jellyfin.valid = false;
+            validationInProgress.jellyfinUrl = false;
+            return false;
+        }
+        
+        // Check if hostname is provided and valid
+        if (!urlObj.hostname || urlObj.hostname.length === 0) {
+            showValidationMessage(validationElement, 'URL must include a valid hostname', 'error');
+            updateSectionStatus('jellyfin', false, 'Invalid hostname');
+            configState.jellyfin.valid = false;
+            validationInProgress.jellyfinUrl = false;
+            return false;
+        }
+        
+        // Basic hostname validation - just check it's not empty and contains valid characters
+        // Let the actual connection test handle more detailed validation
+        if (!/^[a-zA-Z0-9.-]+$/.test(urlObj.hostname)) {
+            showValidationMessage(validationElement, 'Hostname contains invalid characters', 'warning');
+            // Don't fail validation - let connection test handle it
+        }
+        
+        // Check for reasonable port range if specified
+        if (urlObj.port && (parseInt(urlObj.port) < 1 || parseInt(urlObj.port) > 65535)) {
+            showValidationMessage(validationElement, 'Port number must be between 1 and 65535', 'error');
+            updateSectionStatus('jellyfin', false, 'Invalid port');
+            configState.jellyfin.valid = false;
+            validationInProgress.jellyfinUrl = false;
+            return false;
+        }
+        
+        // Success
+        showValidationMessage(validationElement, `URL format is valid: ${urlObj.hostname}${urlObj.port ? ':' + urlObj.port : ''}`, 'success');
+        configState.jellyfin.valid = true;
+        validationInProgress.jellyfinUrl = false;
+        return true;
+        
+    } catch (error) {
+        // More detailed error handling
+        console.error('URL validation error:', error);
+        showValidationMessage(validationElement, `Invalid URL format: ${error.message}`, 'error');
+        updateSectionStatus('jellyfin', false, 'Invalid URL');
+        configState.jellyfin.valid = false;
+        validationInProgress.jellyfinUrl = false;
+        return false;
+    }
+}
+
+function validateJellyfinConfig() {
+    // Prevent recursive calls
+    if (validationInProgress.jellyfinConfig) return false;
+    validationInProgress.jellyfinConfig = true;
+    
+    const urlInput = document.getElementById('jellyfinUrl');
+    const usernameInput = document.getElementById('jellyfinUsername');
+    const apiKeyInput = document.getElementById('jellyfinApiKey');
+    const apiKeyValidation = document.getElementById('apiKeyValidation');
+    
+    if (!urlInput || !apiKeyInput || !apiKeyValidation) {
+        validationInProgress.jellyfinConfig = false;
+        return false;
+    }
+    
+    const url = urlInput.value.trim();
+    const username = usernameInput ? usernameInput.value.trim() : '';
+    const apiKey = apiKeyInput.value.trim();
+    
+    // Clear previous validation
+    apiKeyValidation.style.display = 'none';
+    
+    // Check if URL is valid first (without calling validateJellyfinUrl to avoid recursion)
+    if (!url) {
+        updateSectionStatus('jellyfin', false, 'URL required');
+        configState.jellyfin.valid = false;
+        validationInProgress.jellyfinConfig = false;
+        return false;
+    }
+    
+    // Basic URL validation without calling the full validateJellyfinUrl function
+    try {
+        const urlObj = new URL(url);
+        if (!['http:', 'https:'].includes(urlObj.protocol) || !urlObj.hostname) {
+            updateSectionStatus('jellyfin', false, 'Invalid URL');
+            configState.jellyfin.valid = false;
+            validationInProgress.jellyfinConfig = false;
+            return false;
+        }
+    } catch (error) {
+        updateSectionStatus('jellyfin', false, 'Invalid URL');
+        configState.jellyfin.valid = false;
+        validationInProgress.jellyfinConfig = false;
+        return false;
+    }
+    
+    // Check API key
+    if (!apiKey) {
+        showValidationMessage(apiKeyValidation, 'API key is required for Jellyfin connection', 'error');
+        updateSectionStatus('jellyfin', false, 'API key required');
+        configState.jellyfin.valid = false;
+        configState.api.valid = false;
+        validationInProgress.jellyfinConfig = false;
+        return false;
+    }
+    
+    // Handle masked API key (existing configuration)
+    if (apiKey === '***' && hasExistingApiKey) {
+        // API key is masked but exists - this is valid
+        showValidationMessage(apiKeyValidation, 'Using existing API key configuration', 'success');
+        updateSectionStatus('jellyfin', true, 'Ready to test');
+        configState.jellyfin.valid = true;
+        configState.api.valid = true;
+        updateOverallStatus();
+        validationInProgress.jellyfinConfig = false;
+        return true;
+    }
+    
+    // Basic API key format validation for new keys (Jellyfin API keys are typically 32 character hex strings)
+    if (apiKey !== '***' && apiKey.length < 10) {
+        showValidationMessage(apiKeyValidation, 'API key appears to be too short', 'warning');
+        updateSectionStatus('jellyfin', false, 'Invalid API key');
+        configState.jellyfin.valid = false;
+        configState.api.valid = false;
+        validationInProgress.jellyfinConfig = false;
+        return false;
+    }
+    
+    // If we have both URL and API key, mark as valid
+    showValidationMessage(apiKeyValidation, 'Jellyfin configuration appears valid', 'success');
+    updateSectionStatus('jellyfin', true, 'Ready to test');
+    configState.jellyfin.valid = true;
+    configState.api.valid = true;
+    updateOverallStatus();
+    validationInProgress.jellyfinConfig = false;
+    return true;
+}
+
+function validateMediaPaths() {
+    const mediaPathsInput = document.getElementById('mediaPaths');
+    const validationElement = document.getElementById('mediaPathsValidation');
+    
+    if (!mediaPathsInput || !validationElement) return false;
+    
+    const pathsText = mediaPathsInput.value.trim();
+    
+    // Clear previous validation
+    validationElement.style.display = 'none';
+    
+    if (!pathsText) {
+        showValidationMessage(validationElement, 'At least one media directory path is required', 'error');
+        updateSectionStatus('media', false, 'No paths specified');
+        configState.media.valid = false;
+        return false;
+    }
+    
+    // Split paths by newlines and filter empty lines
+    const paths = pathsText.split('\n').map(path => path.trim()).filter(path => path.length > 0);
+    
+    if (paths.length === 0) {
+        showValidationMessage(validationElement, 'At least one valid media directory path is required', 'error');
+        updateSectionStatus('media', false, 'No valid paths');
+        configState.media.valid = false;
+        return false;
+    }
+    
+    // Basic path validation
+    const invalidPaths = [];
+    for (const path of paths) {
+        // Check for obviously invalid characters (basic validation)
+        if (path.includes('<') || path.includes('>') || path.includes('|') || path.includes('"')) {
+            invalidPaths.push(path);
+        }
+        
+        // Check minimum length
+        if (path.length < 2) {
+            invalidPaths.push(path);
+        }
+    }
+    
+    if (invalidPaths.length > 0) {
+        showValidationMessage(validationElement, `Invalid paths detected: ${invalidPaths.join(', ')}`, 'error');
+        updateSectionStatus('media', false, 'Invalid paths');
+        configState.media.valid = false;
+        return false;
+    }
+    
+    // Success
+    showValidationMessage(validationElement, `${paths.length} media path(s) configured`, 'success');
+    updateSectionStatus('media', true, `${paths.length} path(s) configured`);
+    configState.media.valid = true;
+    updateOverallStatus();
+    return true;
+}
+
+function validateDownloadDir() {
+    const downloadDirInput = document.getElementById('downloadDir');
+    const validationElement = document.getElementById('downloadDirValidation');
+    
+    if (!downloadDirInput || !validationElement) return false;
+    
+    const downloadDir = downloadDirInput.value.trim();
+    
+    // Clear previous validation
+    validationElement.style.display = 'none';
+    
+    if (!downloadDir) {
+        showValidationMessage(validationElement, 'Download directory is required', 'error');
+        return false;
+    }
+    
+    // Basic path validation
+    if (downloadDir.includes('<') || downloadDir.includes('>') || downloadDir.includes('|') || downloadDir.includes('"')) {
+        showValidationMessage(validationElement, 'Download directory path contains invalid characters', 'error');
+        return false;
+    }
+    
+    if (downloadDir.length < 2) {
+        showValidationMessage(validationElement, 'Download directory path is too short', 'error');
+        return false;
+    }
+    
+    // Success
+    showValidationMessage(validationElement, 'Download directory path is valid', 'success');
+    return true;
+}
+
+function validateVlcPath() {
+    const vlcPathInput = document.getElementById('vlcPath');
+    const validationElement = document.getElementById('vlcValidation');
+    
+    if (!vlcPathInput || !validationElement) return false;
+    
+    const vlcPath = vlcPathInput.value.trim();
+    
+    // Clear previous validation
+    validationElement.style.display = 'none';
+    
+    // VLC path is optional - if empty, we'll use auto-detection
+    if (!vlcPath) {
+        showValidationMessage(validationElement, 'Using auto-detection for VLC path', 'info');
+        updateSectionStatus('vlc', true, 'Auto-detection enabled');
+        configState.vlc.valid = true;
+        return true;
+    }
+    
+    // Basic path validation for custom VLC path
+    if (vlcPath.includes('<') || vlcPath.includes('>') || vlcPath.includes('|') || vlcPath.includes('"')) {
+        showValidationMessage(validationElement, 'VLC path contains invalid characters', 'error');
+        updateSectionStatus('vlc', false, 'Invalid path');
+        configState.vlc.valid = false;
+        return false;
+    }
+    
+    if (vlcPath.length < 3) {
+        showValidationMessage(validationElement, 'VLC path appears to be too short', 'error');
+        updateSectionStatus('vlc', false, 'Path too short');
+        configState.vlc.valid = false;
+        return false;
+    }
+    
+    // Check if it looks like an executable path
+    const isExecutable = vlcPath.toLowerCase().endsWith('.exe') || 
+                        vlcPath.toLowerCase().includes('vlc') ||
+                        vlcPath.includes('/') || vlcPath.includes('\\');
+    
+    if (!isExecutable) {
+        showValidationMessage(validationElement, 'Path should point to VLC executable', 'warning');
+        updateSectionStatus('vlc', false, 'Not executable');
+        configState.vlc.valid = false;
+        return false;
+    }
+    
+    // Success
+    showValidationMessage(validationElement, 'VLC path format is valid', 'success');
+    updateSectionStatus('vlc', true, 'Custom path set');
+    configState.vlc.valid = true;
+    return true;
+}
+
+async function validateMediaDirectories() {
+    const mediaPathsInput = document.getElementById('mediaPaths');
+    const validationElement = document.getElementById('mediaPathsValidation');
+    
+    if (!mediaPathsInput || !validationElement) return;
+    
+    const pathsText = mediaPathsInput.value.trim();
+    
+    if (!pathsText) {
+        showValidationMessage(validationElement, 'No media paths to validate', 'error');
+        return;
+    }
+    
+    const paths = pathsText.split('\n').map(path => path.trim()).filter(path => path.length > 0);
+    
+    try {
+        // Show loading state
+        validationElement.textContent = 'Validating directories...';
+        validationElement.className = 'validation-message info';
+        validationElement.style.display = 'block';
+        
+        const response = await fetch('/config/api/validate-media-directories', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                paths: paths
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            const validPaths = data.valid_paths || [];
+            const invalidPaths = data.invalid_paths || [];
+            
+            if (invalidPaths.length === 0) {
+                showValidationMessage(validationElement, `All ${validPaths.length} directories are valid and accessible`, 'success');
+                updateSectionStatus('media', true, `${validPaths.length} valid directories`);
+                configState.media.validated = true;
+            } else {
+                showValidationMessage(validationElement, `${invalidPaths.length} invalid paths: ${invalidPaths.join(', ')}`, 'error');
+                updateSectionStatus('media', false, `${invalidPaths.length} invalid paths`);
+                configState.media.validated = false;
+            }
+        } else {
+            showValidationMessage(validationElement, data.error || 'Failed to validate directories', 'error');
+            updateSectionStatus('media', false, 'Validation failed');
+            configState.media.validated = false;
+        }
+    } catch (error) {
+        console.error('Error validating media directories:', error);
+        showValidationMessage(validationElement, 'Failed to validate directories', 'error');
+        updateSectionStatus('media', false, 'Validation error');
+        configState.media.validated = false;
+    }
+}
+
+async function createDownloadDir() {
+    const downloadDirInput = document.getElementById('downloadDir');
+    const validationElement = document.getElementById('downloadDirValidation');
+    
+    if (!downloadDirInput || !validationElement) return;
+    
+    const downloadDir = downloadDirInput.value.trim();
+    
+    if (!downloadDir) {
+        showValidationMessage(validationElement, 'Please specify a download directory first', 'error');
+        return;
+    }
+    
+    try {
+        // Show loading state
+        validationElement.textContent = 'Creating directory...';
+        validationElement.className = 'validation-message info';
+        validationElement.style.display = 'block';
+        
+        const response = await fetch('/config/api/create-download-dir', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                path: downloadDir
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showValidationMessage(validationElement, `Directory created successfully: ${data.path}`, 'success');
+            if (window.toastManager) {
+                window.toastManager.show('Download directory created successfully', 'success');
+            }
+        } else {
+            showValidationMessage(validationElement, data.error || 'Failed to create directory', 'error');
+            if (window.toastManager) {
+                window.toastManager.show(data.error || 'Failed to create directory', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error creating download directory:', error);
+        showValidationMessage(validationElement, 'Failed to create directory', 'error');
+        if (window.toastManager) {
+            window.toastManager.show('Failed to create directory', 'error');
+        }
+    }
+}
+
+function showMessage(message, type) {
+    // Use ToastManager if available, otherwise fallback to custom implementation
+    if (window.toastManager) {
+        window.toastManager.show(message, type);
+        return;
+    }
+    
+    // Fallback implementation
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 6px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        max-width: 400px;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    `;
+    
+    switch (type) {
+        case 'success':
+            toast.style.backgroundColor = '#4CAF50';
+            break;
+        case 'error':
+            toast.style.backgroundColor = '#f44336';
+            break;
+        case 'warning':
+            toast.style.backgroundColor = '#ff9800';
+            break;
+        default:
+            toast.style.backgroundColor = '#2196F3';
+    }
+    
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after delay
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 4000);
+}
+</script>
+{% endblock %}

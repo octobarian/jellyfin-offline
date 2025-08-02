@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        .instructions {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>RV Media Player Favicon Generator</h1>
+    
+    <div class="instructions">
+        <h2>Instructions:</h2>
+        <ol>
+            <li>Click the "Generate Favicon" button below</li>
+            <li>Right-click on the generated favicon and select "Save Image As..."</li>
+            <li>Save the file as "favicon.ico" in the static directory</li>
+        </ol>
+    </div>
+    
+    <button id="generateBtn">Generate Favicon</button>
+    
+    <div>
+        <h3>Original Logo:</h3>
+        <img id="originalLogo" src="images/logo.png" alt="Original Logo" style="max-width: 200px;">
+    </div>
+    
+    <div>
+        <h3>Generated Favicon (32x32):</h3>
+        <canvas id="faviconCanvas" width="32" height="32"></canvas>
+    </div>
+    
+    <div>
+        <h3>Preview (16x16):</h3>
+        <canvas id="previewCanvas" width="16" height="16"></canvas>
+    </div>
+    
+    <script>
+        document.getElementById('generateBtn').addEventListener('click', function() {
+            const img = document.getElementById('originalLogo');
+            const canvas = document.getElementById('faviconCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw image to canvas, resizing it to fit
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            // Create a smaller preview
+            const previewCanvas = document.getElementById('previewCanvas');
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            previewCtx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height);
+            
+            // Convert to data URL for download
+            const dataUrl = canvas.toDataURL('image/png');
+            
+            // Create a link to download
+            const link = document.createElement('a');
+            link.download = 'favicon.ico';
+            link.href = dataUrl;
+            link.textContent = 'Download Favicon';
+            link.style.display = 'block';
+            link.style.marginTop = '20px';
+            
+            // Replace any existing download link
+            const existingLink = document.querySelector('a[download="favicon.ico"]');
+            if (existingLink) {
+                existingLink.parentNode.replaceChild(link, existingLink);
+            } else {
+                document.body.appendChild(link);
+            }
+        });
+    </script>
+</body>
+</html>
