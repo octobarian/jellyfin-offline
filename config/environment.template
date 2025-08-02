@@ -15,7 +15,6 @@ RV_MEDIA_PLAYER_DEBUG=false
 JELLYFIN_SERVER_URL=
 JELLYFIN_USERNAME=
 JELLYFIN_API_KEY=
-JELLYFIN_USER_ID=
 
 # Media Paths
 LOCAL_MEDIA_PATHS=/media/movies,/media/tv-shows,/media/local

@@ -51,20 +51,54 @@ def create_app(config_path: str = None) -> Flask:
 
     # Initialize services
     try:
-        local_db_path = config.local_db_path if hasattr(config, 'local_db_path') else "media/local_media.db"
+        app.logger.info("Starting service initialization...")
+        
+        # Initialize LocalMediaService
+        app.logger.info("Initializing LocalMediaService...")
+        # Use absolute path for database on Ubuntu/production
+        if hasattr(config, 'local_db_path'):
+            local_db_path = config.local_db_path
+        else:
+            # Default to relative path for development, absolute for production
+            import os
+            if os.path.exists('/opt/rv-media-player'):
+                local_db_path = "/opt/rv-media-player/data/local_media.db"
+            else:
+                local_db_path = "media/local_media.db"
+        app.logger.info(f"Using database path: {local_db_path}")
+        app.logger.info(f"Media paths: {config.local_media_paths}")
+        
+        # Ensure database directory exists
+        db_dir = os.path.dirname(local_db_path)
+        if db_dir and not os.path.exists(db_dir):
+            app.logger.info(f"Creating database directory: {db_dir}")
+            os.makedirs(db_dir, exist_ok=True)
+        
         local_service = LocalMediaService(
             db_path=local_db_path,
             validation_cache_ttl=config.validation_cache_ttl,
             max_validation_workers=config.max_validation_workers
         )
+        app.logger.info("LocalMediaService created successfully")
+        
+        # Scan media directories
+        app.logger.info("Scanning media directories...")
         local_service.scan_media_directories(config.local_media_paths)
+        app.logger.info("Media directory scan completed")
+        
+        # Start watching directories
+        app.logger.info("Starting directory watching...")
         local_service.start_watching(config.local_media_paths)
+        app.logger.info("Directory watching started")
 
+        # Initialize JellyfinService
+        app.logger.info("Initializing JellyfinService...")
         jellyfin_service = JellyfinService(
             server_url=config.jellyfin_server_url,
             username=config.jellyfin_username,
             api_key=config.jellyfin_api_key
         )
+        app.logger.info("JellyfinService created successfully")
 
         # Attempt to authenticate Jellyfin service on startup
         if config.jellyfin_server_url and config.jellyfin_api_key and config.jellyfin_username:
@@ -81,19 +115,26 @@ def create_app(config_path: str = None) -> Flask:
         else:
             app.logger.warning("Jellyfin server URL, API Key, or Username is missing. Skipping initial authentication.")
 
+        # Initialize VLCController
+        app.logger.info("Initializing VLCController...")
         vlc_controller = VLCController()
+        app.logger.info("VLCController created successfully")
 
+        # Initialize MediaManager
+        app.logger.info("Initializing MediaManager...")
         media_manager = MediaManager(
             local_service=local_service,
             jellyfin_service=jellyfin_service,
             vlc_controller=vlc_controller
         )
+        app.logger.info("MediaManager created successfully")
 
         app.config['MEDIA_MANAGER'] = media_manager
         app.logger.info("Services initialized successfully")
 
     except Exception as e:
         app.logger.error(f"Failed to initialize services: {e}")
+        app.logger.error(f"Exception type: {type(e).__name__}")
         app.logger.error(traceback.format_exc())
         app.config['MEDIA_MANAGER'] = None
 

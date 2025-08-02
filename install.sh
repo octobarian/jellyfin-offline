@@ -145,6 +145,10 @@ mkdir -p "$LOGS_DIR" "$CONFIG_DIR" "$APP_DIR/data" "$APP_DIR/backups"
 # Create media directories
 mkdir -p "$MEDIA_DIR/movies" "$MEDIA_DIR/tv-shows" "$MEDIA_DIR/downloads" "$MEDIA_DIR/local"
 
+# Set proper permissions immediately after creation
+chmod 755 "$APP_DIR" "$LOGS_DIR" "$CONFIG_DIR" "$APP_DIR/data" "$APP_DIR/backups"
+chmod 755 "$MEDIA_DIR" "$MEDIA_DIR/movies" "$MEDIA_DIR/tv-shows" "$MEDIA_DIR/downloads" "$MEDIA_DIR/local"
+
 # Create media user if it doesn't exist
 if ! id "media" &>/dev/null; then
     log "Creating media user..."
@@ -177,9 +181,14 @@ cp "$SCRIPT_DIR/setup_config.sh" "$APP_DIR/"
 # Don't copy installation files, git directory, or other development files
 # install.sh, .git/, .gitignore, README files stay in source directory
 
-# Set proper ownership and permissions
-chmod 755 "$APP_DIR" "$MEDIA_DIR" "$LOGS_DIR" "$CONFIG_DIR"
+# Set proper ownership and permissions (more comprehensive)
+chmod -R 755 "$APP_DIR"
+chmod 755 "$MEDIA_DIR" "$MEDIA_DIR"/*
 chown -R media:media "$APP_DIR" "$MEDIA_DIR"
+
+# Ensure specific directories have correct permissions
+chmod 755 "$LOGS_DIR" "$CONFIG_DIR" "$APP_DIR/data" "$APP_DIR/backups"
+chmod 700 "$CONFIG_DIR"  # Config directory should be more restrictive
 
 # Step 4: Set up Python virtual environment
 log "Setting up Python virtual environment..."
@@ -244,7 +253,7 @@ if [ ! -f "$CONFIG_DIR/app_config.json" ]; then
     mkdir -p "$CONFIG_DIR"
     chmod 700 "$CONFIG_DIR"
     
-    # Create a basic configuration file
+    # Create a basic configuration file that matches the Configuration class
     cat > "$CONFIG_DIR/app_config.json" << EOF
 {
   "jellyfin_server_url": "",
@@ -253,16 +262,21 @@ if [ ! -f "$CONFIG_DIR/app_config.json" ]; then
   "local_media_paths": [
     "/media/movies",
     "/media/tv-shows",
-    "/media/local"
+    "/media/downloads"
   ],
   "download_directory": "/media/downloads",
   "vlc_path": "/usr/bin/vlc",
   "auto_launch": true,
-  "fullscreen_browser": true
+  "fullscreen_browser": false,
+  "validation_cache_ttl": 300,
+  "max_validation_workers": 10
 }
 EOF
     chmod 600 "$CONFIG_DIR/app_config.json"
     chown media:media "$CONFIG_DIR/app_config.json"
+    
+    # Ensure config directory has proper ownership
+    chown -R media:media "$CONFIG_DIR"
 fi
 
 # Step 6: Create systemd service for auto-launch
@@ -284,8 +298,9 @@ WorkingDirectory=$APP_DIR
 Environment=PYTHONPATH=$APP_DIR
 Environment=FLASK_APP=app.py
 Environment=FLASK_ENV=production
-ExecStartPre=/bin/mkdir -p $APP_DIR/logs
-ExecStartPre=/bin/chown media:media $APP_DIR/logs
+ExecStartPre=/bin/mkdir -p $APP_DIR/logs $APP_DIR/data
+ExecStartPre=/bin/chown media:media $APP_DIR/logs $APP_DIR/data
+ExecStartPre=/bin/chmod 755 $APP_DIR/logs $APP_DIR/data
 ExecStart=$VENV_DIR/bin/python -m app.app
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always

@@ -69,7 +69,7 @@ echo "1. In Jellyfin, go to Dashboard > Users"
 echo "2. Click on your username"
 echo "3. Copy the User ID from the URL (long string after /users/)"
 echo
-read -p "Enter Jellyfin User ID: " JELLYFIN_USER_ID
+# Note: User ID is automatically retrieved during authentication
 
 # Media Paths Configuration
 echo
@@ -92,78 +92,62 @@ SECRET_KEY=$(openssl rand -hex 32)
 # Create configuration file
 log "Creating configuration file..."
 
+# Ensure directories exist with proper permissions before creating config
+log "Ensuring directories exist with proper permissions..."
+sudo mkdir -p /opt/rv-media-player/data /opt/rv-media-player/logs
+sudo mkdir -p /media/movies /media/tv-shows /media/downloads /media/local
+sudo chown -R media:media /opt/rv-media-player /media
+sudo chmod -R 755 /opt/rv-media-player
+sudo chmod 755 /media /media/movies /media/tv-shows /media/downloads /media/local
+
+# Create simplified configuration file that matches the Configuration class
 sudo tee "$CONFIG_FILE" > /dev/null << EOF
 {
   "jellyfin_server_url": "$JELLYFIN_URL",
   "jellyfin_username": "$JELLYFIN_USER",
   "jellyfin_api_key": "$JELLYFIN_API_KEY",
-  "jellyfin_user_id": "$JELLYFIN_USER_ID",
   "local_media_paths": [
     "/media/movies",
     "/media/tv-shows",
-    "/media/local"$(if [[ -n "$ADDITIONAL_PATHS" ]]; then echo ","; echo "$ADDITIONAL_PATHS" | sed 's/,/",\n    "/g' | sed 's/^/    "/'; fi)
+    "/media/downloads"$(if [[ -n "$ADDITIONAL_PATHS" ]]; then echo ","; echo "$ADDITIONAL_PATHS" | sed 's/,/",\n    "/g' | sed 's/^/    "/'; fi)
   ],
   "download_directory": "/media/downloads",
   "vlc_path": "/usr/bin/vlc",
   "auto_launch": true,
   "fullscreen_browser": false,
-  "web_interface": {
-    "host": "0.0.0.0",
-    "port": $WEB_PORT,
-    "debug": false,
-    "secret_key": "$SECRET_KEY"
-  },
-  "media_scanning": {
-    "auto_scan": true,
-    "scan_interval_minutes": 30,
-    "validate_files": true,
-    "extract_metadata": true,
-    "generate_thumbnails": true
-  },
-  "download_settings": {
-    "max_concurrent_downloads": 3,
-    "download_quality": "1080p",
-    "auto_organize": true,
-    "cleanup_after_download": false
-  },
-  "playback_settings": {
-    "default_player": "vlc",
-    "hardware_acceleration": true,
-    "subtitle_languages": ["en", "eng"],
-    "audio_languages": ["en", "eng"]
-  },
-  "orange_pi_settings": {
-    "enable_optimizations": true,
-    "cpu_governor": "performance",
-    "gpu_memory_split": 128,
-    "disable_bluetooth": true,
-    "disable_wifi_power_save": true
-  },
-  "logging": {
-    "level": "INFO",
-    "file": "/opt/rv-media-player/logs/app.log",
-    "max_size_mb": 10,
-    "backup_count": 5
-  },
-  "security": {
-    "enable_authentication": false,
-    "username": "",
-    "password_hash": "",
-    "session_timeout_minutes": 60,
-    "allowed_ips": []
-  },
-  "advanced": {
-    "cache_size_mb": 256,
-    "thumbnail_cache_size_mb": 128,
-    "database_path": "/opt/rv-media-player/data/media.db",
-    "backup_config": true,
-    "backup_interval_hours": 24
-  }
+  "validation_cache_ttl": 300,
+  "max_validation_workers": 10
 }
 EOF
 
-# Set proper ownership
+# Set proper ownership and permissions
+sudo chmod 600 "$CONFIG_FILE"
 sudo chown media:media "$CONFIG_FILE"
+
+# Verify permissions are correct
+log "Verifying directory permissions..."
+if [[ ! -w "/opt/rv-media-player/data" ]] || [[ ! -d "/opt/rv-media-player/data" ]]; then
+    log "Fixing data directory permissions..."
+    sudo mkdir -p /opt/rv-media-player/data
+    sudo chown -R media:media /opt/rv-media-player/data
+    sudo chmod 755 /opt/rv-media-player/data
+fi
+
+if [[ ! -w "/opt/rv-media-player/logs" ]] || [[ ! -d "/opt/rv-media-player/logs" ]]; then
+    log "Fixing logs directory permissions..."
+    sudo mkdir -p /opt/rv-media-player/logs
+    sudo chown -R media:media /opt/rv-media-player/logs
+    sudo chmod 755 /opt/rv-media-player/logs
+fi
+
+# Test database creation
+log "Testing database creation..."
+if sudo -u media sqlite3 /opt/rv-media-player/data/test.db "CREATE TABLE test (id INTEGER); DROP TABLE test;" 2>/dev/null; then
+    sudo rm -f /opt/rv-media-player/data/test.db
+    success "Database creation test passed"
+else
+    error "Database creation test failed - check permissions"
+fi
 
 log "Configuration file created: $CONFIG_FILE"
 

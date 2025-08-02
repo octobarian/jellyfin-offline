@@ -2,7 +2,6 @@
   "jellyfin_server_url": "",
   "jellyfin_username": "",
   "jellyfin_api_key": "",
-  "jellyfin_user_id": "",
   "local_media_paths": [
     "/media/movies",
     "/media/tv-shows",
