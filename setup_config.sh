@@ -5,6 +5,13 @@
 
 set -e
 
+# Check if running with sudo
+if [[ $EUID -ne 0 ]]; then
+    echo -e "\033[0;31m[ERROR]\033[0m This script must be run with sudo"
+    echo "Usage: sudo ./setup_config.sh"
+    exit 1
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,6 +25,19 @@ CONFIG_FILE="$APP_DIR/config/app_config.json"
 
 log() {
     echo -e "${GREEN}[$(date +'%H:%M:%S')] $1${NC}"
+}
+
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+    exit 1
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
 warn() {
@@ -142,11 +162,18 @@ fi
 
 # Test database creation
 log "Testing database creation..."
-if sudo -u media sqlite3 /opt/rv-media-player/data/test.db "CREATE TABLE test (id INTEGER); DROP TABLE test;" 2>/dev/null; then
-    sudo rm -f /opt/rv-media-player/data/test.db
-    success "Database creation test passed"
+if command -v sqlite3 >/dev/null 2>&1; then
+    if sudo -u media sqlite3 /opt/rv-media-player/data/test.db "CREATE TABLE test (id INTEGER); DROP TABLE test;" 2>/dev/null; then
+        sudo rm -f /opt/rv-media-player/data/test.db
+        success "Database creation test passed"
+    else
+        warning "Database creation test failed - permissions may need adjustment"
+        log "Attempting to fix database directory permissions..."
+        sudo chown -R media:media /opt/rv-media-player/data
+        sudo chmod -R 755 /opt/rv-media-player/data
+    fi
 else
-    error "Database creation test failed - check permissions"
+    warning "sqlite3 not found - skipping database test"
 fi
 
 log "Configuration file created: $CONFIG_FILE"
