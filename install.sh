@@ -276,6 +276,8 @@ WorkingDirectory=$APP_DIR
 Environment=PYTHONPATH=$APP_DIR
 Environment=FLASK_APP=app.py
 Environment=FLASK_ENV=production
+ExecStartPre=/bin/mkdir -p $APP_DIR/logs
+ExecStartPre=/bin/chown media:media $APP_DIR/logs
 ExecStart=$VENV_DIR/bin/python -m app.app
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always

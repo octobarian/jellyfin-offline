@@ -111,8 +111,21 @@ def setup_logging(app: Flask) -> None:
     Args:
         app: Flask application instance
     """
+    # Determine the application root directory
+    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    logs_dir = os.path.join(app_root, 'logs')
+    
     # Create logs directory if it doesn't exist
-    os.makedirs('logs', exist_ok=True)
+    try:
+        os.makedirs(logs_dir, exist_ok=True)
+        # Ensure proper permissions
+        os.chmod(logs_dir, 0o755)
+    except (OSError, PermissionError) as e:
+        print(f"Warning: Could not create logs directory {logs_dir}: {e}")
+        # Fall back to system temp directory
+        import tempfile
+        logs_dir = tempfile.gettempdir()
+        print(f"Using temporary directory for logs: {logs_dir}")
 
     # Configure logging format
     formatter = logging.Formatter(
@@ -120,24 +133,40 @@ def setup_logging(app: Flask) -> None:
     )
 
     # File handler for application logs
-    file_handler = logging.FileHandler('logs/app.log')
-    file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(formatter)
+    log_file = os.path.join(logs_dir, 'app.log')
+    try:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(formatter)
+        
+        # Configure Flask app logger
+        app.logger.setLevel(logging.DEBUG)
+        app.logger.addHandler(file_handler)
+        
+        # Configure werkzeug logger (Flask's built-in server)
+        werkzeug_logger = logging.getLogger('werkzeug')
+        werkzeug_logger.setLevel(logging.INFO)
+        werkzeug_logger.addHandler(file_handler)
+        
+        app.logger.info(f"Logging initialized. Log file: {log_file}")
+        
+    except (OSError, PermissionError) as e:
+        print(f"Warning: Could not create log file {log_file}: {e}")
+        print("Continuing with console logging only")
 
-    # Console handler for development
+    # Console handler (always available)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(formatter)
 
     # Configure Flask app logger
     app.logger.setLevel(logging.DEBUG)
-    app.logger.addHandler(file_handler)
     app.logger.addHandler(console_handler)
 
     # Configure werkzeug logger (Flask's built-in server)
     werkzeug_logger = logging.getLogger('werkzeug')
     werkzeug_logger.setLevel(logging.INFO)
-    werkzeug_logger.addHandler(file_handler)
+    werkzeug_logger.addHandler(console_handler)
 
 
 def register_error_handlers(app: Flask) -> None:
