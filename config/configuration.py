@@ -98,49 +98,63 @@ class ConfigurationManager:
     
     def _encrypt_sensitive_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Encrypt sensitive configuration data."""
-        key = self._get_or_create_encryption_key()
-        cipher = Fernet(key)
+        try:
+            key = self._get_or_create_encryption_key()
+            cipher = Fernet(key)
 
-        encrypted_data = data.copy()
-        sensitive_fields = ['jellyfin_api_key', 'jellyfin_username'] # <-- COMMENT THIS OUT
-        # sensitive_fields = ['jellyfin_username'] # <-- ONLY ENCRYPT USERNAME FOR NOW
+            encrypted_data = data.copy()
+            sensitive_fields = ['jellyfin_api_key']  # Only encrypt API key for now
 
-        for field in sensitive_fields:
-            if field in encrypted_data and encrypted_data[field]:
-                # Check if it's already encrypted to avoid double encryption
-                if not encrypted_data[field].startswith("gAAAAA"): # Simple check for Fernet prefix
-                    encrypted_value = cipher.encrypt(encrypted_data[field].encode())
-                    encrypted_data[field] = encrypted_value.decode()
-                # else:
-                    # print(f"DEBUG: Field {field} appears to be already encrypted, skipping re-encryption.") # Add for debug
+            for field in sensitive_fields:
+                if field in encrypted_data and encrypted_data[field]:
+                    value = str(encrypted_data[field])
+                    # Check if it's already encrypted to avoid double encryption
+                    if not (value.startswith("gAAAAA") or value == "***"):
+                        try:
+                            encrypted_value = cipher.encrypt(value.encode())
+                            encrypted_data[field] = encrypted_value.decode()
+                            print(f"DEBUG: Encrypted field {field}")
+                        except Exception as e:
+                            print(f"ERROR: Failed to encrypt field {field}: {e}")
+                    else:
+                        print(f"DEBUG: Field {field} appears to be already encrypted or masked, skipping")
 
-        return encrypted_data
+            return encrypted_data
+        except Exception as e:
+            print(f"ERROR: Encryption failed: {e}")
+            return data
     
     def _decrypt_sensitive_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Decrypt sensitive configuration data."""
-        if not self.key_file.exists():
-            print("WARNING: Encryption key file not found, cannot decrypt sensitive data.") # Add warning
-            return data # Return data as is, assuming it's unencrypted or corrupted
+        try:
+            if not self.key_file.exists():
+                print("WARNING: Encryption key file not found, cannot decrypt sensitive data.")
+                return data
 
-        key = self._get_or_create_encryption_key()
-        cipher = Fernet(key)
+            key = self._get_or_create_encryption_key()
+            cipher = Fernet(key)
 
-        decrypted_data = data.copy()
-        sensitive_fields = ['jellyfin_api_key', 'jellyfin_username'] # <-- COMMENT THIS OUT
-        # sensitive_fields = ['jellyfin_username'] # <-- ONLY DECRYPT USERNAME FOR NOW
+            decrypted_data = data.copy()
+            sensitive_fields = ['jellyfin_api_key']  # Only decrypt API key for now
 
-        for field in sensitive_fields:
-            if field in decrypted_data and decrypted_data[field] and decrypted_data[field].startswith("gAAAAA"):
-                try:
-                    decrypted_value = cipher.decrypt(decrypted_data[field].encode())
-                    decrypted_data[field] = decrypted_value.decode()
-                except Exception as e: # <-- CHANGE TO LOG THE EXCEPTION
-                    print(f"ERROR: Decryption failed for field '{field}': {e}. Value remains encrypted.")
-                    # Leave it encrypted if decryption fails, so it's not accidentally stored in plain text if corrupt
-            # else:
-                # print(f"DEBUG: Field {field} not encrypted or empty, skipping decryption.") # Add for debug
+            for field in sensitive_fields:
+                if field in decrypted_data and decrypted_data[field]:
+                    value = str(decrypted_data[field])
+                    if value.startswith("gAAAAA"):
+                        try:
+                            decrypted_value = cipher.decrypt(value.encode())
+                            decrypted_data[field] = decrypted_value.decode()
+                            print(f"DEBUG: Decrypted field {field}")
+                        except Exception as e:
+                            print(f"ERROR: Decryption failed for field '{field}': {e}. Value remains encrypted.")
+                            # Leave it encrypted if decryption fails
+                    else:
+                        print(f"DEBUG: Field {field} not encrypted, skipping decryption")
 
-        return decrypted_data
+            return decrypted_data
+        except Exception as e:
+            print(f"ERROR: Decryption process failed: {e}")
+            return data
     
     def load_configuration(self) -> Configuration:
         """Load configuration from file or create default configuration."""

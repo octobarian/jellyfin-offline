@@ -103,7 +103,8 @@ def update_config():
         if not data:
             return jsonify({'error': 'No configuration data provided'}), 400
         
-        logger.info("Updating configuration")
+        logger.info(f"Updating configuration with data: {list(data.keys())}")
+        logger.info(f"Jellyfin data received: server_url={data.get('jellyfin_server_url', 'NOT_PROVIDED')}, username={data.get('jellyfin_username', 'NOT_PROVIDED')}, api_key={'PROVIDED' if data.get('jellyfin_api_key') else 'NOT_PROVIDED'}")
         
         # Get current configuration
         current_config = current_app.config.get('MEDIA_CONFIG')
@@ -126,9 +127,16 @@ def update_config():
         
         if 'jellyfin_api_key' in data:
             api_key = data['jellyfin_api_key'].strip()
-            if api_key and api_key != '***':  # Don't update if placeholder
+            # Only update if we have a real API key (not empty, not placeholder)
+            if api_key and api_key != '***' and len(api_key) > 0:
                 current_config.jellyfin_api_key = api_key
                 updated_fields.append('jellyfin_api_key')
+                logger.info("API key updated")
+            elif not api_key:
+                # If empty string is provided, clear the API key
+                current_config.jellyfin_api_key = ""
+                updated_fields.append('jellyfin_api_key')
+                logger.info("API key cleared")
         
         if 'local_media_paths' in data:
             paths = data['local_media_paths']
@@ -168,16 +176,51 @@ def update_config():
         
         # Save updated configuration
         try:
-            current_config.save_to_file()
-            current_app.config['MEDIA_CONFIG'] = current_config
+            logger.info(f"Attempting to save configuration with fields: {updated_fields}")
+            logger.info(f"Current config values: server_url={current_config.jellyfin_server_url}, username={current_config.jellyfin_username}, api_key={'SET' if current_config.jellyfin_api_key else 'NOT_SET'}")
             
-            logger.info(f"Configuration updated successfully. Fields: {updated_fields}")
-            
-            return jsonify({
-                'success': True,
-                'message': 'Configuration updated successfully',
-                'updated_fields': updated_fields
-            })
+            success = current_config.save_to_file()
+            if success:
+                current_app.config['MEDIA_CONFIG'] = current_config
+                logger.info(f"Configuration saved successfully. Fields: {updated_fields}")
+                
+                # If Jellyfin configuration was updated, reload services
+                jellyfin_fields = ['jellyfin_server_url', 'jellyfin_username', 'jellyfin_api_key']
+                if any(field in updated_fields for field in jellyfin_fields):
+                    logger.info("Jellyfin configuration updated, reloading services...")
+                    try:
+                        # Reinitialize Jellyfin service
+                        from ..services.jellyfin_service import JellyfinService
+                        
+                        new_jellyfin_service = JellyfinService(
+                            server_url=current_config.jellyfin_server_url,
+                            username=current_config.jellyfin_username,
+                            api_key=current_config.jellyfin_api_key
+                        )
+                        
+                        # Update media manager
+                        media_manager = current_app.config.get('MEDIA_MANAGER')
+                        if media_manager:
+                            media_manager.jellyfin_service = new_jellyfin_service
+                            current_app.config['MEDIA_MANAGER'] = media_manager
+                            logger.info("Services reloaded with new Jellyfin configuration")
+                        
+                    except Exception as reload_error:
+                        logger.error(f"Failed to reload services: {reload_error}")
+                        # Don't fail the save operation if service reload fails
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Configuration updated successfully',
+                    'updated_fields': updated_fields
+                })
+            else:
+                logger.error("Configuration save returned False")
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to save configuration to file',
+                    'message': 'Save operation returned False'
+                }), 500
             
         except Exception as e:
             logger.error(f"Failed to save configuration: {e}")
@@ -328,6 +371,82 @@ def test_vlc_installation():
         return jsonify({
             'success': False,
             'error': 'VLC test failed',
+            'message': str(e)
+        }), 500
+
+
+@config_bp.route('/api/reload-services', methods=['POST'])
+def reload_services():
+    """
+    Reload services with updated configuration without restarting the application.
+    
+    Returns:
+        JSON response with reload status
+    """
+    try:
+        logger.info("Reloading services with updated configuration")
+        
+        # Get current configuration
+        config = current_app.config.get('MEDIA_CONFIG')
+        if not config:
+            return jsonify({
+                'success': False,
+                'error': 'No configuration available'
+            }), 500
+        
+        # Get current media manager
+        media_manager = current_app.config.get('MEDIA_MANAGER')
+        if not media_manager:
+            return jsonify({
+                'success': False,
+                'error': 'Media manager not available'
+            }), 500
+        
+        # Reinitialize Jellyfin service with new configuration
+        from ..services.jellyfin_service import JellyfinService
+        
+        new_jellyfin_service = JellyfinService(
+            server_url=config.jellyfin_server_url,
+            username=config.jellyfin_username,
+            api_key=config.jellyfin_api_key
+        )
+        
+        # Test authentication if credentials are provided
+        auth_success = False
+        if config.jellyfin_server_url and config.jellyfin_api_key:
+            logger.info("Testing Jellyfin authentication with new configuration...")
+            try:
+                auth_result = new_jellyfin_service.authenticate(
+                    server_url=config.jellyfin_server_url,
+                    api_key=config.jellyfin_api_key,
+                    username=config.jellyfin_username
+                )
+                auth_success = bool(auth_result)
+                if auth_success:
+                    logger.info("Jellyfin service authenticated successfully with new configuration")
+                else:
+                    logger.warning("Jellyfin authentication failed with new configuration")
+            except Exception as auth_error:
+                logger.error(f"Jellyfin authentication error: {auth_error}")
+        
+        # Update the media manager's Jellyfin service
+        media_manager.jellyfin_service = new_jellyfin_service
+        
+        # Update the app config
+        current_app.config['MEDIA_MANAGER'] = media_manager
+        
+        return jsonify({
+            'success': True,
+            'message': 'Services reloaded successfully',
+            'jellyfin_authenticated': auth_success,
+            'jellyfin_configured': bool(config.jellyfin_server_url and config.jellyfin_api_key)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error reloading services: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Service reload failed',
             'message': str(e)
         }), 500
 

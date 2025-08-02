@@ -432,8 +432,10 @@
     
     <div class="config-actions">
         <button type="submit" class="btn">Save Configuration</button>
+        <button type="button" class="btn btn-secondary" onclick="reloadServices()">Reload Services</button>
         <button type="button" class="btn btn-secondary" onclick="resetConfig()">Reset to Defaults</button>
-        <button type="button" class="btn btn-secondary" onclick="loadCurrentConfig()">Reload</button>
+        <button type="button" class="btn btn-secondary" onclick="loadCurrentConfig()">Reload Config</button>
+        <button type="button" class="btn btn-secondary" onclick="testSave()" style="background-color: #ff9800;">Test Save (Debug)</button>
     </div>
 </form>
 {% endblock %}
@@ -489,6 +491,7 @@ document.getElementById('configForm').addEventListener('submit', async function(
 });
 
 async function saveConfiguration() {
+    console.log('saveConfiguration called');
     const formData = new FormData(document.getElementById('configForm'));
     
     // Convert form data to JSON
@@ -507,7 +510,10 @@ async function saveConfiguration() {
     if (!formData.has('auto_launch')) config.auto_launch = false;
     if (!formData.has('fullscreen_browser')) config.fullscreen_browser = false;
     
+    console.log('Configuration to save:', config);
+    
     try {
+        console.log('Sending request to /config/api/update');
         const response = await fetch('/config/api/update', {
             method: 'POST',
             headers: {
@@ -516,12 +522,16 @@ async function saveConfiguration() {
             body: JSON.stringify(config)
         });
         
+        console.log('Response status:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
         
         if (response.ok && data.success) {
             showMessage('Configuration saved successfully', 'success');
+            console.log('Configuration saved successfully');
         } else {
             showMessage(data.error || 'Failed to save configuration', 'error');
+            console.error('Save failed:', data);
         }
     } catch (error) {
         console.error('Error saving configuration:', error);
@@ -679,6 +689,49 @@ function updateSectionStatus(section, isValid, statusText = null) {
         if (subtitle) {
             subtitle.textContent = statusText || (isValid ? 'Configured' : 'Not configured');
         }
+    }
+}
+
+// Debug function to test save functionality
+function testSave() {
+    console.log('Test save button clicked');
+    saveConfiguration();
+}
+
+// Function to reload services with updated configuration
+async function reloadServices() {
+    console.log('Reloading services...');
+    
+    try {
+        showMessage('Reloading services...', 'info');
+        
+        const response = await fetch('/config/api/reload-services', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        console.log('Reload services response:', data);
+        
+        if (response.ok && data.success) {
+            let message = 'Services reloaded successfully';
+            if (data.jellyfin_configured) {
+                message += data.jellyfin_authenticated ? ' - Jellyfin connected' : ' - Jellyfin configured but not connected';
+            }
+            showMessage(message, 'success');
+            
+            // Refresh the page status
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showMessage(data.error || 'Failed to reload services', 'error');
+        }
+    } catch (error) {
+        console.error('Error reloading services:', error);
+        showMessage('Failed to reload services', 'error');
     }
 }
 

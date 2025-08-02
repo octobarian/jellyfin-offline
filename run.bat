@@ -17,11 +17,21 @@ REM Check if virtual environment exists
 if exist "venv\Scripts\activate.bat" (
     echo Activating virtual environment...
     call venv\Scripts\activate.bat
-) else if exist ".venv\Scripts\activate.bat" (
-    echo Activating virtual environment...
-    call .venv\Scripts\activate.bat
 ) else (
-    echo No virtual environment found. Using system Python...
+    echo Creating virtual environment...
+    python -m venv venv
+    call venv\Scripts\activate.bat
+    
+    echo Installing dependencies...
+    pip install --upgrade pip
+    pip install -r requirements.txt
+)
+
+REM Check if mutagen is available
+python -c "import mutagen" >nul 2>&1
+if errorlevel 1 (
+    echo Installing missing dependencies...
+    pip install -r requirements.txt
 )
 
 REM Run the application
