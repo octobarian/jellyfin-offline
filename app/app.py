@@ -6,14 +6,26 @@ for the RV Media Player system.
 """
 import logging
 import os
+import sys
 from flask import Flask, jsonify, request, render_template, send_from_directory
 from werkzeug.exceptions import HTTPException
 import traceback
 
-from .services.media_manager import MediaManager
-from .services.local_media_service import LocalMediaService
-from .services.jellyfin_service import JellyfinService
-from .services.vlc_controller import VLCController
+# Add the application root directory to Python path for imports
+app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if app_root not in sys.path:
+    sys.path.insert(0, app_root)
+
+# Also add the current working directory to handle installed locations
+current_dir = os.getcwd()
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Now import with absolute paths
+from app.services.media_manager import MediaManager
+from app.services.local_media_service import LocalMediaService
+from app.services.jellyfin_service import JellyfinService
+from app.services.vlc_controller import VLCController
 from config.configuration import Configuration
 
 
@@ -202,9 +214,9 @@ def register_routes(app: Flask) -> None:
     Args:
         app: Flask application instance
     """
-    from .controllers.main_controller import main_bp
-    from .controllers.api_controller import api_bp
-    from .controllers.config_controller import config_bp
+    from app.controllers.main_controller import main_bp
+    from app.controllers.api_controller import api_bp
+    from app.controllers.config_controller import config_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp, url_prefix='/api')

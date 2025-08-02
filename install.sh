@@ -175,43 +175,57 @@ chown -R media:media "$APP_DIR" "$MEDIA_DIR"
 
 # Step 4: Set up Python virtual environment
 log "Setting up Python virtual environment..."
+log "Note: Using --no-cache-dir to avoid permission issues with pip cache"
+
 if [ -d "$VENV_DIR" ]; then
     warning "Virtual environment already exists. Recreating..."
     rm -rf "$VENV_DIR"
 fi
 
-sudo -u media python3 -m venv "$VENV_DIR"
-sudo -u media bash -c "source '$VENV_DIR/bin/activate' && pip install --upgrade pip"
+# Create virtual environment as media user with proper environment
+sudo -u media -H bash -c "cd '$APP_DIR' && python3 -m venv '$VENV_DIR'" || error "Failed to create virtual environment"
+
+# Upgrade pip with proper cache handling
+sudo -u media -H bash -c "
+    cd '$APP_DIR'
+    source '$VENV_DIR/bin/activate'
+    pip install --no-cache-dir --upgrade pip
+" || error "Failed to upgrade pip"
 
 # Install Python dependencies
 log "Installing Python dependencies..."
-sudo -u media bash -c "
+sudo -u media -H bash -c "
+    cd '$APP_DIR'
     source '$VENV_DIR/bin/activate'
-    pip install flask
-    pip install requests
-    pip install python-dotenv
-    pip install gunicorn
-    pip install psutil
-    pip install watchdog
-    pip install schedule
-    pip install python-vlc
-    pip install mutagen
-    pip install pillow
-    pip install 'qrcode[pil]'
-    pip install cryptography
-    pip install pyyaml
-    pip install jsonschema
-    pip install click
-    pip install colorama
-    pip install tqdm
-    pip install humanize
-    pip install pymediainfo
-"
+    pip install --no-cache-dir flask
+    pip install --no-cache-dir requests
+    pip install --no-cache-dir python-dotenv
+    pip install --no-cache-dir gunicorn
+    pip install --no-cache-dir psutil
+    pip install --no-cache-dir watchdog
+    pip install --no-cache-dir schedule
+    pip install --no-cache-dir python-vlc
+    pip install --no-cache-dir mutagen
+    pip install --no-cache-dir pillow
+    pip install --no-cache-dir 'qrcode[pil]'
+    pip install --no-cache-dir cryptography
+    pip install --no-cache-dir pyyaml
+    pip install --no-cache-dir jsonschema
+    pip install --no-cache-dir click
+    pip install --no-cache-dir colorama
+    pip install --no-cache-dir tqdm
+    pip install --no-cache-dir humanize
+    pip install --no-cache-dir pymediainfo
+" || error "Failed to install Python dependencies"
 
 # Install requirements.txt if it exists
 if [ -f "$APP_DIR/requirements.txt" ]; then
     log "Installing additional requirements from requirements.txt..."
-    sudo -u media bash -c "source '$VENV_DIR/bin/activate' && pip install -r '$APP_DIR/requirements.txt'"
+    sudo -u media -H bash -c "
+        cd '$APP_DIR'
+        source '$VENV_DIR/bin/activate'
+        pip install --no-cache-dir -r '$APP_DIR/requirements.txt'
+    "
 fi
 
 # Step 5: Set up configuration
@@ -297,7 +311,11 @@ log "Creating run script..."
 cat > "$APP_DIR/run.sh" << EOF
 #!/bin/bash
 # Activate virtual environment and run the RV Media Player
+cd "$APP_DIR"
 source "$VENV_DIR/bin/activate"
+export PYTHONPATH="$APP_DIR:\$PYTHONPATH"
+export FLASK_APP=app/app.py
+export FLASK_ENV=production
 python -m app.app
 EOF
 

@@ -73,12 +73,20 @@ if [ -f "/opt/rv-media-player/venv/bin/pip" ]; then
     echo "Checking key packages..."
     packages=("flask" "requests" "python-vlc" "mutagen" "psutil")
     for package in "${packages[@]}"; do
-        if /opt/rv-media-player/venv/bin/pip show "$package" &>/dev/null; then
+        if sudo -u media -H bash -c "cd /opt/rv-media-player && source venv/bin/activate && pip show '$package'" &>/dev/null; then
             echo -e "${GREEN}✓ $package installed${NC}"
         else
             echo -e "${RED}✗ $package missing${NC}"
         fi
     done
+
+    # Test pip functionality
+    echo "Testing pip functionality..."
+    if sudo -u media -H bash -c "cd /opt/rv-media-player && source venv/bin/activate && pip --version" &>/dev/null; then
+        echo -e "${GREEN}✓ pip is functional${NC}"
+    else
+        echo -e "${RED}✗ pip has issues${NC}"
+    fi
 else
     echo -e "${RED}✗ pip not found in virtual environment${NC}"
 fi
