@@ -60,8 +60,8 @@ RV Media Player bridges the gap between local media storage and cloud-based medi
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-repo/rv-media-player.git
-   cd rv-media-player
+   git clone https://github.com/octobarian/jellyfin-offline.git
+   cd jellyfin-offline
    ```
 
 2. **Run the installation script:**
