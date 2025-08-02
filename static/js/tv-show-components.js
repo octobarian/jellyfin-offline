@@ -329,7 +329,7 @@ function formatDuration(seconds) {
     }
 }
 
-// ===== NAVIGATION FUNCTIONS =====
+// Navigation functions
 
 /**
  * Show seasons view for a TV show

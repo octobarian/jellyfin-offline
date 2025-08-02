@@ -1812,7 +1812,7 @@
 let mediaData = [];
 let filteredData = [];
 
-// Enhanced Status Management with StatusManager
+// Status Management with StatusManager
 let statusManager = null;
 let connectivityStatus = {
     internet: false,
@@ -2116,7 +2116,7 @@ let connectivityCheckInterval = null;
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOMContentLoaded - initializing application');
     
-    // Initialize enhanced connectivity monitoring with StatusManager
+    // Initialize connectivity monitoring with StatusManager
     await initializeConnectivityMonitoring();
     
     // Load media library (this will now be non-blocking)
@@ -2159,7 +2159,7 @@ async function loadMediaLibrary(forceRefresh = false) {
     if (!window.progressiveLoader) {
         window.progressiveLoader = new ProgressiveMediaLoader();
         
-        // Set up enhanced callbacks for progressive loading with improved indicators
+        // Set up progressive loading callbacks
         window.progressiveLoader.setCallbacks({
             onLocalLoaded: (localMedia, unifiedMedia) => {
                 console.log('Progressive loading: Local media loaded', localMedia.length, 'items');
@@ -2273,7 +2273,7 @@ async function loadMediaLibrary(forceRefresh = false) {
                     progressiveLoader.displayServiceUnavailabilityMessage(errorInfo);
                 }
 
-                // Handle different types of errors with enhanced indicators
+                // Handle different types of errors with appropriate indicators
                 if (error.message.includes('Remote media unavailable') || error.message.includes('services unavailable')) {
                     // Remote loading failed, but local succeeded
                     const localCount = mediaData.length || 0;
@@ -2322,7 +2322,7 @@ async function loadMediaLibrary(forceRefresh = false) {
                     );
                 }
                 
-                // Use enhanced loading indicators if available
+                // Use loading indicators if available
                 if (indicators && indicators.phase) {
                     showProgressiveLoadingPhase(indicators.phase, indicators.progress);
                 } else {
@@ -2399,10 +2399,10 @@ async function loadMediaLibrary(forceRefresh = false) {
 
     console.log('Starting non-blocking progressive loading - local files will show immediately');
 
-    console.log('--- Starting enhanced progressive loadMediaLibrary ---');
+    console.log('Starting progressive media loading...');
 
     try {
-        // Use progressive loader with enhanced indicators
+        // Use progressive loader with indicators
         await window.progressiveLoader.loadMedia(forceRefresh);
         
     } catch (error) {
@@ -2418,10 +2418,10 @@ async function loadMediaLibrary(forceRefresh = false) {
         // No need to hide loadingIndicator since we're not showing it
     }
 
-    console.log('--- Finished progressive loadMediaLibrary ---');
+    console.log('Progressive media loading complete');
 }
 
-// Enhanced helper function to update loading indicator text and progress with progressive phases
+// Update loading indicator text and progress
 function updateLoadingIndicator(message, showProgress = false, phase = null, stats = null) {
     const loadingIndicator = document.getElementById('loadingIndicator');
     const loadingText = document.getElementById('loadingText');
@@ -2495,7 +2495,7 @@ function updateLoadingIndicator(message, showProgress = false, phase = null, sta
     }
 }
 
-// Enhanced helper function to update individual progress status with detailed states
+// Update individual progress status
 function updateProgressStatus(type, status, count = null, details = null) {
     const progressElement = document.getElementById(`${type}Progress`);
     if (progressElement) {
@@ -2563,7 +2563,7 @@ function createFinalStatusSummary(stats) {
     };
 }
 
-// Enhanced function to show progressive loading phases with proper messaging and visual feedback
+// Show progressive loading phases
 function showProgressiveLoadingPhase(phase, data = {}) {
     const phases = {
         'initializing': {
@@ -2834,7 +2834,7 @@ let currentViewFilter = 'movies'; // Default to 'movies'
 // an *inner* grid container anymore.
 
 function renderMediaGrid() {
-    console.log('--- Starting renderMediaGrid ---');
+    console.log('Rendering media grid...');
     const mediaGrid = document.getElementById('mediaGrid');
     mediaGrid.innerHTML = ''; // Clear previous content
 
@@ -2901,7 +2901,7 @@ function renderMediaGrid() {
         document.getElementById('noMedia').style.display = 'block';
     }
     
-    console.log('--- Finished renderMediaGrid ---');
+    console.log('Media grid rendering complete');
 }
 
 function createMediaSection(title, mediaItems) {
@@ -2916,12 +2916,9 @@ function createMediaSection(title, mediaItems) {
         <span class="section-count">${mediaItems.length}</span>
     `;
 
-    // --- CHANGE STARTS HERE ---
-    // This div will contain the media cards, but it's NO LONGER the primary grid.
-    // The main #mediaGrid will be the grid.
+    // Container for media cards
     const cardsContainer = document.createElement('div');
-    cardsContainer.className = 'media-cards-container'; // A new, distinct class name
-    // --- CHANGE ENDS HERE ---
+    cardsContainer.className = 'media-cards-container';
 
     mediaItems.forEach(media => {
         const mediaCard = createMediaCard(media);
@@ -4171,10 +4168,10 @@ async function initializeConnectivityMonitoring() {
             }
         });
         
-        console.log('Enhanced connectivity monitoring initialized successfully');
+        console.log('Connectivity monitoring initialized successfully');
         
     } catch (error) {
-        console.error('Failed to initialize enhanced connectivity monitoring:', error);
+        console.error('Failed to initialize connectivity monitoring:', error);
         
         // Fallback to legacy status checking if StatusManager fails
         console.log('Falling back to legacy status checking');

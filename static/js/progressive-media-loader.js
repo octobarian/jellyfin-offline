@@ -54,7 +54,7 @@ class ProgressiveMediaLoader {
       MERGING_MEDIA: "merging_media",
     };
 
-    // Enhanced loading states for non-blocking operation
+    // Loading states for non-blocking operation
     this.loadingStates = {
       phase: this.PHASES.INITIALIZING,
       local: { status: "pending", count: 0, duration: 0, startTime: null },
@@ -108,7 +108,7 @@ class ProgressiveMediaLoader {
     this.retryAttempts = new Map();
 
     console.log(
-      "Enhanced ProgressiveMediaLoader: Initialized with non-blocking strategy and status integration"
+      "ProgressiveMediaLoader: Initialized with non-blocking strategy and status integration"
     );
   }
 
@@ -429,7 +429,7 @@ class ProgressiveMediaLoader {
   async loadMedia(forceRefresh = false, options = {}) {
     const startTime = Date.now();
     console.log(
-      "Enhanced ProgressiveMediaLoader: Starting non-blocking media loading"
+      "ProgressiveMediaLoader: Starting non-blocking media loading"
     );
 
     try {
@@ -454,7 +454,7 @@ class ProgressiveMediaLoader {
       return this.unifiedMedia;
     } catch (error) {
       console.error(
-        "Enhanced ProgressiveMediaLoader: Error during non-blocking loading:",
+        "ProgressiveMediaLoader: Error during non-blocking loading:",
         error
       );
       this._handleLoadingError(error, "initialization");
@@ -469,7 +469,7 @@ class ProgressiveMediaLoader {
   async loadLocalMediaImmediate(forceRefresh = false) {
     const startTime = Date.now();
     console.log(
-      "Enhanced ProgressiveMediaLoader: Loading local media immediately"
+      "ProgressiveMediaLoader: Loading local media immediately"
     );
 
     try {
@@ -505,7 +505,7 @@ class ProgressiveMediaLoader {
       this.loadingStates.local.count = this.localMedia.length;
 
       console.log(
-        `Enhanced ProgressiveMediaLoader: Local media loaded in ${duration}ms (${this.localMedia.length} items)`
+        `ProgressiveMediaLoader: Local media loaded in ${duration}ms (${this.localMedia.length} items)`
       );
 
       // Transition to local_complete phase
@@ -534,7 +534,7 @@ class ProgressiveMediaLoader {
       this.loadingStates.local.status = "error";
 
       console.error(
-        `Enhanced ProgressiveMediaLoader: Local media loading failed after ${duration}ms:`,
+        `ProgressiveMediaLoader: Local media loading failed after ${duration}ms:`,
         error
       );
 
@@ -547,7 +547,7 @@ class ProgressiveMediaLoader {
         this.loadingStates.local.count = this.localMedia.length;
 
         console.log(
-          `Enhanced ProgressiveMediaLoader: Loaded ${cachedLocal.length} local items from cache`
+          `ProgressiveMediaLoader: Loaded ${cachedLocal.length} local items from cache`
         );
 
         // Transition to local_complete even with cache fallback
@@ -601,7 +601,7 @@ class ProgressiveMediaLoader {
     this.loadingStates.userInteractionEnabled = true;
     this.performanceMetrics.timeToFirstInteraction = interactionTime;
 
-    console.log("Enhanced ProgressiveMediaLoader: User interaction enabled");
+    console.log("ProgressiveMediaLoader: User interaction enabled");
 
     // Notify callback
     if (this.callbacks.onUserInteractionEnabled) {
@@ -621,7 +621,7 @@ class ProgressiveMediaLoader {
    */
   async loadRemoteMediaBackground(forceRefresh = false, options = {}) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Starting background remote media loading"
+      "ProgressiveMediaLoader: Starting background remote media loading"
     );
 
     const {
@@ -704,7 +704,7 @@ class ProgressiveMediaLoader {
 
       } catch (error) {
         console.error(
-          "Enhanced ProgressiveMediaLoader: Background loading failed:",
+          "ProgressiveMediaLoader: Background loading failed:",
           error
         );
         
@@ -765,7 +765,7 @@ class ProgressiveMediaLoader {
     };
 
     console.log(
-      `Enhanced ProgressiveMediaLoader: Loading indicator - ${indicators.message}`
+      `ProgressiveMediaLoader: Loading indicator - ${indicators.message}`
     );
 
     // Emit progress update event
@@ -786,7 +786,7 @@ class ProgressiveMediaLoader {
    */
   seamlesslyIntegrateRemoteMedia(newRemoteMedia) {
     console.log(
-      `Enhanced ProgressiveMediaLoader: Seamlessly integrating ${newRemoteMedia.length} remote items`
+      `ProgressiveMediaLoader: Seamlessly integrating ${newRemoteMedia.length} remote items`
     );
 
     const beforeCount = this.unifiedMedia.length;
@@ -910,7 +910,7 @@ class ProgressiveMediaLoader {
     const existingItemsEnhanced = beforeCount - localOnlyCount;
 
     console.log(
-      `Enhanced ProgressiveMediaLoader: Integration complete - ${newItemsAdded} new items, ${existingItemsEnhanced} enhanced items`
+      `ProgressiveMediaLoader: Integration complete - ${newItemsAdded} new items, ${existingItemsEnhanced} enhanced items`
     );
 
     // Create seamless integration event
@@ -1024,7 +1024,7 @@ class ProgressiveMediaLoader {
     if (!this.statusManager) return;
 
     console.log(
-      "Enhanced ProgressiveMediaLoader: Initializing status manager integration"
+      "ProgressiveMediaLoader: Initializing status manager integration"
     );
 
     // Listen for service recovery events
@@ -1080,7 +1080,7 @@ class ProgressiveMediaLoader {
   async _handleServiceRecovery(data) {
     const { service } = data;
     console.log(
-      `Enhanced ProgressiveMediaLoader: Handling ${service} recovery`
+      `ProgressiveMediaLoader: Handling ${service} recovery`
     );
 
     // Clear retry attempts for this service
@@ -1095,14 +1095,14 @@ class ProgressiveMediaLoader {
       this.loadingStates.remote.status === "error"
     ) {
       console.log(
-        "Enhanced ProgressiveMediaLoader: Attempting to reload remote media after Jellyfin recovery"
+        "ProgressiveMediaLoader: Attempting to reload remote media after Jellyfin recovery"
       );
 
       try {
         await this._retryRemoteMediaLoading("service_recovery");
       } catch (error) {
         console.error(
-          "Enhanced ProgressiveMediaLoader: Failed to reload remote media after recovery:",
+          "ProgressiveMediaLoader: Failed to reload remote media after recovery:",
           error
         );
       }
@@ -1121,7 +1121,7 @@ class ProgressiveMediaLoader {
    */
   _handleServiceFailure(data) {
     const { service } = data;
-    console.log(`Enhanced ProgressiveMediaLoader: Handling ${service} failure`);
+    console.log(`ProgressiveMediaLoader: Handling ${service} failure`);
 
     // Update connectivity mode
     this._updateConnectivityMode();
@@ -1161,7 +1161,7 @@ class ProgressiveMediaLoader {
    * @param {Object} data - Recovery event data
    */
   async _handleJellyfinRecovery(data) {
-    console.log("Enhanced ProgressiveMediaLoader: Handling Jellyfin recovery");
+    console.log("ProgressiveMediaLoader: Handling Jellyfin recovery");
 
     // Update connectivity mode to online
     this.connectivityMode = "online";
@@ -1170,7 +1170,7 @@ class ProgressiveMediaLoader {
     // Attempt to load remote media if not already loaded
     if (this.loadingStates.remote.status !== "complete") {
       console.log(
-        "Enhanced ProgressiveMediaLoader: Loading remote media after Jellyfin recovery"
+        "ProgressiveMediaLoader: Loading remote media after Jellyfin recovery"
       );
 
       try {
@@ -1185,7 +1185,7 @@ class ProgressiveMediaLoader {
         );
       } catch (error) {
         console.error(
-          "Enhanced ProgressiveMediaLoader: Failed to load remote media after Jellyfin recovery:",
+          "ProgressiveMediaLoader: Failed to load remote media after Jellyfin recovery:",
           error
         );
       }
@@ -1198,7 +1198,7 @@ class ProgressiveMediaLoader {
    * @param {Object} data - Failure event data
    */
   _handleJellyfinFailure(data) {
-    console.log("Enhanced ProgressiveMediaLoader: Handling Jellyfin failure");
+    console.log("ProgressiveMediaLoader: Handling Jellyfin failure");
 
     // Update connectivity mode
     this.connectivityMode = "degraded";
@@ -1228,7 +1228,7 @@ class ProgressiveMediaLoader {
   _handleConnectivityModeChange(data) {
     const { newMode, oldMode } = data;
     console.log(
-      `Enhanced ProgressiveMediaLoader: Connectivity mode changed from ${oldMode} to ${newMode}`
+      `ProgressiveMediaLoader: Connectivity mode changed from ${oldMode} to ${newMode}`
     );
 
     this.connectivityMode = newMode;
@@ -1255,7 +1255,7 @@ class ProgressiveMediaLoader {
    * @param {Object} data - Offline mode data
    */
   _handleOfflineModeActivated(data) {
-    console.log("Enhanced ProgressiveMediaLoader: Offline mode activated");
+    console.log("ProgressiveMediaLoader: Offline mode activated");
 
     this.connectivityMode = "offline";
     this.loadingStrategy = "local-only";
@@ -1275,7 +1275,7 @@ class ProgressiveMediaLoader {
    * @param {Object} data - Local-only mode data
    */
   _handleLocalOnlyModeActivated(data) {
-    console.log("Enhanced ProgressiveMediaLoader: Local-only mode activated");
+    console.log("ProgressiveMediaLoader: Local-only mode activated");
 
     this.connectivityMode = "degraded";
     this.loadingStrategy = "local-only";
@@ -1296,7 +1296,7 @@ class ProgressiveMediaLoader {
 
     if (currentAttempts >= this.retryConfig.maxRetries) {
       console.log(
-        `Enhanced ProgressiveMediaLoader: Max retry attempts (${this.retryConfig.maxRetries}) reached for ${service}`
+        `ProgressiveMediaLoader: Max retry attempts (${this.retryConfig.maxRetries}) reached for ${service}`
       );
       return;
     }
@@ -1307,7 +1307,7 @@ class ProgressiveMediaLoader {
       : this.retryConfig.retryDelay;
 
     console.log(
-      `Enhanced ProgressiveMediaLoader: Retrying remote media loading (attempt ${
+      `ProgressiveMediaLoader: Retrying remote media loading (attempt ${
         currentAttempts + 1
       }/${this.retryConfig.maxRetries}) after ${delay}ms delay`
     );
@@ -1336,11 +1336,11 @@ class ProgressiveMediaLoader {
       this.retryAttempts.delete(service);
 
       console.log(
-        `Enhanced ProgressiveMediaLoader: Remote media loading retry successful`
+        `ProgressiveMediaLoader: Remote media loading retry successful`
       );
     } catch (error) {
       console.error(
-        `Enhanced ProgressiveMediaLoader: Remote media loading retry failed:`,
+        `ProgressiveMediaLoader: Remote media loading retry failed:`,
         error
       );
 
@@ -1385,7 +1385,7 @@ class ProgressiveMediaLoader {
     }
 
     console.log(
-      `Enhanced ProgressiveMediaLoader: Updated connectivity mode to ${this.connectivityMode}, strategy: ${this.loadingStrategy}`
+      `ProgressiveMediaLoader: Updated connectivity mode to ${this.connectivityMode}, strategy: ${this.loadingStrategy}`
     );
   }
 
@@ -1397,7 +1397,7 @@ class ProgressiveMediaLoader {
     this.retryConfig.retryOnServiceRecovery = enabled;
 
     console.log(
-      `Enhanced ProgressiveMediaLoader: Seamless service recovery ${
+      `ProgressiveMediaLoader: Seamless service recovery ${
         enabled ? "enabled" : "disabled"
       }`
     );
@@ -1423,7 +1423,7 @@ class ProgressiveMediaLoader {
     };
 
     console.log(
-      "Enhanced ProgressiveMediaLoader: Auto-retry configured:",
+      "ProgressiveMediaLoader: Auto-retry configured:",
       this.retryConfig
     );
   }
@@ -1464,7 +1464,7 @@ class ProgressiveMediaLoader {
    */
   destroy() {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Cleaning up status manager integration"
+      "ProgressiveMediaLoader: Cleaning up status manager integration"
     );
 
     // Remove all status event listeners
@@ -1473,7 +1473,7 @@ class ProgressiveMediaLoader {
         unsubscribe();
       } catch (error) {
         console.warn(
-          `Enhanced ProgressiveMediaLoader: Error removing listener for ${event}:`,
+          `ProgressiveMediaLoader: Error removing listener for ${event}:`,
           error
         );
       }
@@ -1895,7 +1895,7 @@ class ProgressiveMediaLoader {
    */
   disableUserInteraction() {
     this.loadingStates.userInteractionEnabled = false;
-    console.log("Enhanced ProgressiveMediaLoader: User interaction disabled");
+    console.log("ProgressiveMediaLoader: User interaction disabled");
 
     this._notifyLoadingStateChange("User interaction disabled");
   }
@@ -1915,7 +1915,7 @@ class ProgressiveMediaLoader {
     if (this.statusManager) {
       this._initializeStatusManagerIntegration();
       console.log(
-        "Enhanced ProgressiveMediaLoader: Status manager integration initialized"
+        "ProgressiveMediaLoader: Status manager integration initialized"
       );
     }
   }
@@ -1927,7 +1927,7 @@ class ProgressiveMediaLoader {
    */
   onStatusChange(event, data) {
     console.log(
-      `Enhanced ProgressiveMediaLoader: Handling status event: ${event}`,
+      `ProgressiveMediaLoader: Handling status event: ${event}`,
       data
     );
 
@@ -1952,7 +1952,7 @@ class ProgressiveMediaLoader {
         break;
       default:
         console.log(
-          `Enhanced ProgressiveMediaLoader: Unhandled status event: ${event}`
+          `ProgressiveMediaLoader: Unhandled status event: ${event}`
         );
     }
   }
@@ -1964,7 +1964,7 @@ class ProgressiveMediaLoader {
    */
   adjustLoadingStrategy(mode, options = {}) {
     console.log(
-      `Enhanced ProgressiveMediaLoader: Adjusting loading strategy for ${mode} mode`
+      `ProgressiveMediaLoader: Adjusting loading strategy for ${mode} mode`
     );
 
     const previousStrategy = this.loadingStrategy;
@@ -1985,7 +1985,7 @@ class ProgressiveMediaLoader {
         break;
       default:
         console.warn(
-          `Enhanced ProgressiveMediaLoader: Unknown connectivity mode: ${mode}`
+          `ProgressiveMediaLoader: Unknown connectivity mode: ${mode}`
         );
         this.loadingStrategy = "local-only";
         this._enableOfflineMode();
@@ -1993,7 +1993,7 @@ class ProgressiveMediaLoader {
 
     if (previousStrategy !== this.loadingStrategy) {
       console.log(
-        `Enhanced ProgressiveMediaLoader: Loading strategy changed from ${previousStrategy} to ${this.loadingStrategy}`
+        `ProgressiveMediaLoader: Loading strategy changed from ${previousStrategy} to ${this.loadingStrategy}`
       );
       this._notifyLoadingStateChange(
         `Loading strategy adjusted to ${this.loadingStrategy} mode`
@@ -2008,7 +2008,7 @@ class ProgressiveMediaLoader {
    */
   handleServiceUnavailability(service, error) {
     console.log(
-      `Enhanced ProgressiveMediaLoader: Handling ${service} unavailability:`,
+      `ProgressiveMediaLoader: Handling ${service} unavailability:`,
       error
     );
 
@@ -2033,7 +2033,7 @@ class ProgressiveMediaLoader {
         break;
       default:
         console.warn(
-          `Enhanced ProgressiveMediaLoader: Unknown service unavailable: ${service}`
+          `ProgressiveMediaLoader: Unknown service unavailable: ${service}`
         );
     }
 
@@ -2065,7 +2065,7 @@ class ProgressiveMediaLoader {
     this._updateLoadingIndicatorsForError(service, userFriendlyError);
 
     console.log(
-      `Enhanced ProgressiveMediaLoader: Displayed error message for ${service}:`,
+      `ProgressiveMediaLoader: Displayed error message for ${service}:`,
       userFriendlyError
     );
   }
@@ -2119,7 +2119,7 @@ class ProgressiveMediaLoader {
     }
 
     console.log(
-      `Enhanced ProgressiveMediaLoader: Background loading feedback - ${feedback.message}`
+      `ProgressiveMediaLoader: Background loading feedback - ${feedback.message}`
     );
     return feedback;
   }
@@ -2129,7 +2129,7 @@ class ProgressiveMediaLoader {
    */
   enableOfflineModeIndicators() {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Enabling offline mode indicators"
+      "ProgressiveMediaLoader: Enabling offline mode indicators"
     );
 
     // Update connectivity mode
@@ -2181,7 +2181,7 @@ class ProgressiveMediaLoader {
    */
   handleOfflineModeRecovery() {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Handling offline mode recovery"
+      "ProgressiveMediaLoader: Handling offline mode recovery"
     );
 
     // Update connectivity mode
@@ -2311,7 +2311,7 @@ class ProgressiveMediaLoader {
       this.performanceMetrics.timeToFullComplete = Date.now();
 
       console.log(
-        `Enhanced ProgressiveMediaLoader: Background loading completed in ${duration}ms`
+        `ProgressiveMediaLoader: Background loading completed in ${duration}ms`
       );
 
       // Notify completion
@@ -2342,7 +2342,7 @@ class ProgressiveMediaLoader {
       this.loadingStates.remote.duration = duration;
 
       console.error(
-        `Enhanced ProgressiveMediaLoader: Background loading failed after ${duration}ms:`,
+        `ProgressiveMediaLoader: Background loading failed after ${duration}ms:`,
         error
       );
 
@@ -2391,7 +2391,7 @@ class ProgressiveMediaLoader {
       }
     } catch (error) {
       console.warn(
-        "Enhanced ProgressiveMediaLoader: Error loading local cache:",
+        "ProgressiveMediaLoader: Error loading local cache:",
         error
       );
     }
@@ -2417,7 +2417,7 @@ class ProgressiveMediaLoader {
       }
     } catch (error) {
       console.warn(
-        "Enhanced ProgressiveMediaLoader: Error loading remote cache:",
+        "ProgressiveMediaLoader: Error loading remote cache:",
         error
       );
     }
@@ -2443,7 +2443,7 @@ class ProgressiveMediaLoader {
       }
     } catch (error) {
       console.warn(
-        "Enhanced ProgressiveMediaLoader: Error loading unified cache:",
+        "ProgressiveMediaLoader: Error loading unified cache:",
         error
       );
     }
@@ -2466,7 +2466,7 @@ class ProgressiveMediaLoader {
       );
     } catch (error) {
       console.warn(
-        "Enhanced ProgressiveMediaLoader: Error caching local media:",
+        "ProgressiveMediaLoader: Error caching local media:",
         error
       );
     }
@@ -2488,7 +2488,7 @@ class ProgressiveMediaLoader {
       );
     } catch (error) {
       console.warn(
-        "Enhanced ProgressiveMediaLoader: Error caching remote media:",
+        "ProgressiveMediaLoader: Error caching remote media:",
         error
       );
     }
@@ -2510,7 +2510,7 @@ class ProgressiveMediaLoader {
       );
     } catch (error) {
       console.warn(
-        "Enhanced ProgressiveMediaLoader: Error caching unified media:",
+        "ProgressiveMediaLoader: Error caching unified media:",
         error
       );
     }
@@ -2892,7 +2892,7 @@ class ProgressiveMediaLoader {
    */
   _retryService(service) {
     console.log(
-      `Enhanced ProgressiveMediaLoader: Retrying ${service} connection`
+      `ProgressiveMediaLoader: Retrying ${service} connection`
     );
 
     if (this.statusManager) {
@@ -2920,7 +2920,7 @@ class ProgressiveMediaLoader {
    */
   _retryConnection() {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Retrying internet connection"
+      "ProgressiveMediaLoader: Retrying internet connection"
     );
 
     if (this.statusManager) {
@@ -2999,7 +2999,7 @@ class ProgressiveMediaLoader {
    */
   _handleInternetUnavailable(errorInfo) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Handling internet unavailable"
+      "ProgressiveMediaLoader: Handling internet unavailable"
     );
     this.adjustLoadingStrategy("offline");
     this.enableOfflineModeIndicators();
@@ -3012,7 +3012,7 @@ class ProgressiveMediaLoader {
    */
   _handleJellyfinUnavailable(errorInfo) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Handling Jellyfin unavailable"
+      "ProgressiveMediaLoader: Handling Jellyfin unavailable"
     );
     this.adjustLoadingStrategy("degraded");
 
@@ -3033,7 +3033,7 @@ class ProgressiveMediaLoader {
    */
   _handleLocalMediaUnavailable(errorInfo) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Handling local media unavailable"
+      "ProgressiveMediaLoader: Handling local media unavailable"
     );
 
     // This is a critical error - local media should always be available
@@ -3097,7 +3097,7 @@ class ProgressiveMediaLoader {
     } = options;
 
     console.log(
-      "Enhanced ProgressiveMediaLoader: Performing background remote loading with options:",
+      "ProgressiveMediaLoader: Performing background remote loading with options:",
       options
     );
 
@@ -3129,7 +3129,7 @@ class ProgressiveMediaLoader {
 
         if (!internetStatus?.connected) {
           console.log(
-            "Enhanced ProgressiveMediaLoader: No internet connection, skipping remote loading"
+            "ProgressiveMediaLoader: No internet connection, skipping remote loading"
           );
           this._completeBackgroundLoading("offline");
           return;
@@ -3137,7 +3137,7 @@ class ProgressiveMediaLoader {
 
         if (!jellyfinStatus?.connected) {
           console.log(
-            "Enhanced ProgressiveMediaLoader: Jellyfin not available, skipping remote loading"
+            "ProgressiveMediaLoader: Jellyfin not available, skipping remote loading"
           );
           this._completeBackgroundLoading("degraded");
           return;
@@ -3245,7 +3245,7 @@ class ProgressiveMediaLoader {
       }
 
       console.log(
-        `Enhanced ProgressiveMediaLoader: Background remote loading completed in ${duration}ms (${this.remoteMedia.length} remote items)`
+        `ProgressiveMediaLoader: Background remote loading completed in ${duration}ms (${this.remoteMedia.length} remote items)`
       );
 
       this._completeBackgroundLoading("online");
@@ -3255,7 +3255,7 @@ class ProgressiveMediaLoader {
       this.loadingStates.remote.status = "error";
 
       console.error(
-        "Enhanced ProgressiveMediaLoader: Background remote loading failed:",
+        "ProgressiveMediaLoader: Background remote loading failed:",
         error
       );
 
@@ -3304,7 +3304,7 @@ class ProgressiveMediaLoader {
     }
 
     console.log(
-      `Enhanced ProgressiveMediaLoader: Background loading completed in ${mode} mode`
+      `ProgressiveMediaLoader: Background loading completed in ${mode} mode`
     );
 
     // Notify callbacks
@@ -3342,7 +3342,7 @@ class ProgressiveMediaLoader {
     this.loadingStates.errors.push(errorInfo);
 
     console.error(
-      `Enhanced ProgressiveMediaLoader: Error in ${phase} phase:`,
+      `ProgressiveMediaLoader: Error in ${phase} phase:`,
       error
     );
 
@@ -3392,7 +3392,7 @@ class ProgressiveMediaLoader {
     if (!this.statusManager) return;
 
     console.log(
-      "Enhanced ProgressiveMediaLoader: Setting up status manager event listeners"
+      "ProgressiveMediaLoader: Setting up status manager event listeners"
     );
 
     // Set up event listeners
@@ -3436,7 +3436,7 @@ class ProgressiveMediaLoader {
     if (!this.statusManager) return;
 
     console.log(
-      "Enhanced ProgressiveMediaLoader: Cleaning up status manager event listeners"
+      "ProgressiveMediaLoader: Cleaning up status manager event listeners"
     );
 
     // Remove all event listeners
@@ -3455,7 +3455,7 @@ class ProgressiveMediaLoader {
   _handleConnectivityModeChange(data) {
     const { oldMode, newMode } = data;
     console.log(
-      `Enhanced ProgressiveMediaLoader: Connectivity mode changed from ${oldMode} to ${newMode}`
+      `ProgressiveMediaLoader: Connectivity mode changed from ${oldMode} to ${newMode}`
     );
 
     this.adjustLoadingStrategy(newMode);
@@ -3470,7 +3470,7 @@ class ProgressiveMediaLoader {
         this.loadingStates.userInteractionEnabled
       ) {
         console.log(
-          "Enhanced ProgressiveMediaLoader: Connectivity restored, starting background remote loading"
+          "ProgressiveMediaLoader: Connectivity restored, starting background remote loading"
         );
         this.loadRemoteMediaBackground(false, { showProgressIndicators: true });
       }
@@ -3484,7 +3484,7 @@ class ProgressiveMediaLoader {
    */
   _handleInternetConnected(data) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Internet connection established"
+      "ProgressiveMediaLoader: Internet connection established"
     );
 
     // If we were in offline mode and now have internet, upgrade to degraded mode
@@ -3499,7 +3499,7 @@ class ProgressiveMediaLoader {
    * @param {Object} data - Event data
    */
   _handleInternetDisconnected(data) {
-    console.log("Enhanced ProgressiveMediaLoader: Internet connection lost");
+    console.log("ProgressiveMediaLoader: Internet connection lost");
 
     // Switch to offline mode
     this.adjustLoadingStrategy("offline");
@@ -3507,7 +3507,7 @@ class ProgressiveMediaLoader {
     // Cancel any ongoing background tasks
     if (this.loadingStates.backgroundTasksActive) {
       console.log(
-        "Enhanced ProgressiveMediaLoader: Cancelling background tasks due to internet loss"
+        "ProgressiveMediaLoader: Cancelling background tasks due to internet loss"
       );
       this.loadingStates.backgroundTasksActive = false;
       this._notifyLoadingStateChange(
@@ -3523,7 +3523,7 @@ class ProgressiveMediaLoader {
    */
   _handleJellyfinConnected(data) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Jellyfin connection established"
+      "ProgressiveMediaLoader: Jellyfin connection established"
     );
 
     // If we have internet and now Jellyfin, upgrade to online mode
@@ -3537,7 +3537,7 @@ class ProgressiveMediaLoader {
         this.loadingStates.userInteractionEnabled
       ) {
         console.log(
-          "Enhanced ProgressiveMediaLoader: Jellyfin available, starting background remote loading"
+          "ProgressiveMediaLoader: Jellyfin available, starting background remote loading"
         );
         this.loadRemoteMediaBackground(false, { showProgressIndicators: true });
       }
@@ -3550,7 +3550,7 @@ class ProgressiveMediaLoader {
    * @param {Object} data - Event data
    */
   _handleJellyfinDisconnected(data) {
-    console.log("Enhanced ProgressiveMediaLoader: Jellyfin connection lost");
+    console.log("ProgressiveMediaLoader: Jellyfin connection lost");
 
     // Downgrade to degraded mode if we still have internet
     const internetStatus = this.statusManager?.getStatus("internet");
@@ -3572,7 +3572,7 @@ class ProgressiveMediaLoader {
     // Log significant status changes
     if (service === "localMedia" && oldStatus.count !== newStatus.count) {
       console.log(
-        `Enhanced ProgressiveMediaLoader: Local media count changed from ${oldStatus.count} to ${newStatus.count}`
+        `ProgressiveMediaLoader: Local media count changed from ${oldStatus.count} to ${newStatus.count}`
       );
 
       // Update our local media if the count changed significantly
@@ -3588,7 +3588,7 @@ class ProgressiveMediaLoader {
    */
   _enableFullFunctionality() {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Enabling full functionality (online mode)"
+      "ProgressiveMediaLoader: Enabling full functionality (online mode)"
     );
     // All features available - no restrictions
   }
@@ -3599,7 +3599,7 @@ class ProgressiveMediaLoader {
    */
   _enableLimitedFunctionality() {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Enabling limited functionality (degraded mode)"
+      "ProgressiveMediaLoader: Enabling limited functionality (degraded mode)"
     );
     // Local media + internet available but no Jellyfin
     // Could potentially load from other remote sources if implemented
@@ -3611,7 +3611,7 @@ class ProgressiveMediaLoader {
    */
   _enableOfflineMode() {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Enabling offline mode (local-only)"
+      "ProgressiveMediaLoader: Enabling offline mode (local-only)"
     );
     // Only local media available
     // Cancel any background tasks
@@ -3630,7 +3630,7 @@ class ProgressiveMediaLoader {
    */
   _handleInternetUnavailable(errorInfo) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Handling internet unavailability"
+      "ProgressiveMediaLoader: Handling internet unavailability"
     );
     this.adjustLoadingStrategy("offline");
     this._notifyLoadingStateChange("No internet connection - local media only");
@@ -3643,7 +3643,7 @@ class ProgressiveMediaLoader {
    */
   _handleJellyfinUnavailable(errorInfo) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Handling Jellyfin unavailability"
+      "ProgressiveMediaLoader: Handling Jellyfin unavailability"
     );
 
     // Check if we still have internet
@@ -3668,7 +3668,7 @@ class ProgressiveMediaLoader {
    */
   _handleLocalMediaUnavailable(errorInfo) {
     console.log(
-      "Enhanced ProgressiveMediaLoader: Handling local media unavailability"
+      "ProgressiveMediaLoader: Handling local media unavailability"
     );
 
     // This is a critical error - local media should always be available
@@ -3679,12 +3679,12 @@ class ProgressiveMediaLoader {
     // Try to recover by clearing cache and retrying
     setTimeout(() => {
       console.log(
-        "Enhanced ProgressiveMediaLoader: Attempting to recover local media"
+        "ProgressiveMediaLoader: Attempting to recover local media"
       );
       this.clearCache();
       this.loadLocalMediaImmediate(true).catch((error) => {
         console.error(
-          "Enhanced ProgressiveMediaLoader: Local media recovery failed:",
+          "ProgressiveMediaLoader: Local media recovery failed:",
           error
         );
       });
@@ -3703,14 +3703,14 @@ class ProgressiveMediaLoader {
       this.loadingStates.local.status === "complete"
     ) {
       console.log(
-        "Enhanced ProgressiveMediaLoader: Refreshing local media due to status change"
+        "ProgressiveMediaLoader: Refreshing local media due to status change"
       );
 
       // Refresh local media in background
       setTimeout(() => {
         this.loadLocalMediaImmediate(true).catch((error) => {
           console.error(
-            "Enhanced ProgressiveMediaLoader: Local media refresh failed:",
+            "ProgressiveMediaLoader: Local media refresh failed:",
             error
           );
         });
@@ -3889,7 +3889,7 @@ class ProgressiveMediaLoader {
     });
 
     console.log(
-      "Enhanced ProgressiveMediaLoader: Status manager integration initialized"
+      "ProgressiveMediaLoader: Status manager integration initialized"
     );
   }
 
@@ -3907,7 +3907,7 @@ class ProgressiveMediaLoader {
     this.statusEventListeners.clear();
 
     console.log(
-      "Enhanced ProgressiveMediaLoader: Status manager integration cleaned up"
+      "ProgressiveMediaLoader: Status manager integration cleaned up"
     );
   }
 
@@ -3991,7 +3991,7 @@ class ProgressiveMediaLoader {
     this.loadingStates.phase = this.PHASES.ERROR;
 
     console.error(
-      `Enhanced ProgressiveMediaLoader: Loading error in ${context}:`,
+      `ProgressiveMediaLoader: Loading error in ${context}:`,
       error
     );
 

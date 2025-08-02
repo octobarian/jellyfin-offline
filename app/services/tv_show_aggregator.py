@@ -58,11 +58,11 @@ class TVShowAggregator:
                 # Use TV show metadata if it's more complete
                 if not existing_show['thumbnail_url'] and tv_show_item.thumbnail_url:
                     existing_show['thumbnail_url'] = tv_show_item.thumbnail_url
-                    self.logger.debug(f"Enhanced {existing_show['title']} with TV show thumbnail from {tv_show_item.title}")
+                    self.logger.debug(f"{existing_show['title']} with TV show thumbnail from {tv_show_item.title}")
 
                 if not existing_show['year'] and tv_show_item.year:
                     existing_show['year'] = tv_show_item.year
-                    self.logger.debug(f"Enhanced {existing_show['title']} with TV show year from {tv_show_item.title}")
+                    self.logger.debug(f"{existing_show['title']} with TV show year from {tv_show_item.title}")
 
                 # Merge metadata, preferring TV show metadata for certain fields
                 if tv_show_item.metadata:
@@ -70,7 +70,7 @@ class TVShowAggregator:
                         if key not in existing_show['metadata'] or not existing_show['metadata'][key]:
                             existing_show['metadata'][key] = value
 
-                self.logger.debug(f"Enhanced existing show {existing_show['title']} with TV show metadata from {tv_show_item.title}")
+                self.logger.debug(f"existing show {existing_show['title']} with TV show metadata from {tv_show_item.title}")
 
             elif show_key not in shows_dict:
                 # Create new entry for standalone TV show
@@ -97,7 +97,7 @@ class TVShowAggregator:
                         if key not in existing_show['metadata'] or not existing_show['metadata'][key]:
                             existing_show['metadata'][key] = value
 
-                self.logger.debug(f"Enhanced existing show {tv_show_item.title} with exact key match")
+                self.logger.debug(f"existing show {tv_show_item.title} with exact key match")
         
         # Convert to TVShow objects
         tv_show_objects = []

@@ -237,7 +237,7 @@ class JellyfinService:
             page_count = 0
             failed_pages = []
             
-            logger.info("=== PAGINATION DEBUG: Starting media library retrieval ===")
+            logger.info("Starting media library retrieval")
             
             while True:
                 page_count += 1
@@ -387,8 +387,8 @@ class JellyfinService:
                 metadata['partial_success'] = True
                 metadata['errors'].append(f"Failed to retrieve {len(failed_pages)} pages: {failed_pages}")
             
-            logger.info("=== PAGINATION DEBUG: Media library retrieval complete ===")
-            logger.info(f"PAGINATION DEBUG: Final summary - Pages: {page_count}, Raw items fetched: {total_fetched}, Valid MediaItems: {len(media_items)}")
+            logger.info("Media library retrieval complete")
+            logger.info(f"Final summary - Pages: {page_count}, Raw items fetched: {total_fetched}, Valid MediaItems: {len(media_items)}")
             logger.info(f"Processed {len(media_items)} valid media items from Jellyfin (fetched {total_fetched} total items across {page_count} pages)")
             logger.info(f"Retrieval metadata: {metadata}")
             
@@ -960,7 +960,7 @@ class JellyfinService:
 
             thumbnail_url = None
 
-            # --- REFINED LOGIC FOR THUMBNAIL URL GENERATION ---
+            # Thumbnail URL generation logic
 
             # For Movies and TV Shows, directly check ImageTags for 'Primary' or 'Thumb'
             if media_type in [MediaType.MOVIE, MediaType.TV_SHOW]:
@@ -1030,7 +1030,7 @@ class JellyfinService:
             if not thumbnail_url:
                 logger.warning(f"No thumbnail URL generated for item: {title} (ID: {jellyfin_id}, Type: {item_type})")
 
-            # --- END REFINED LOGIC FOR THUMBNAIL URL GENERATION ---
+
 
             # Create MediaItem
             media_item = MediaItem(
@@ -1059,7 +1059,7 @@ class JellyfinService:
     
     def _download_worker(self, task: DownloadTask, media_id: str, destination: str) -> None:
         """
-        Worker function for downloading media files with enhanced progress tracking.
+        Worker function for downloading media files with progress tracking.
         
         Args:
             task: DownloadTask to update
@@ -1159,7 +1159,7 @@ class JellyfinService:
             task.status = DownloadStatus.DOWNLOADING
             task.update_progress(0.0)
             
-            # Download file with enhanced progress tracking and cancellation support
+            # Download file with progress tracking and cancellation support
             downloaded_size = 0
             chunk_size = 8192  # 8KB chunks for good balance of memory and progress updates
             progress_update_threshold = 0.001  # Update progress every 0.1% for smoother UI updates
@@ -1246,7 +1246,7 @@ class JellyfinService:
                     else:
                         raise stream_e
             
-            # Enhanced download completion detection
+            #  download completion detection
             if task.status == DownloadStatus.FAILED:
                 # Download was cancelled or failed
                 logger.info(f"Download cancelled for {media_id} after downloading {downloaded_size} bytes")
@@ -1355,8 +1355,8 @@ class JellyfinService:
             # Store original update_progress method
             original_update_progress = task.update_progress
             
-            # Create enhanced update_progress that notifies progress tracker
-            def enhanced_update_progress(progress: float) -> None:
+            # Create update_progress that notifies progress tracker
+            def update_progress_with_tracking(progress: float) -> None:
                 original_update_progress(progress)
                 try:
                     # Convert to percentage for progress tracker
@@ -1391,7 +1391,7 @@ class JellyfinService:
                     logger.warning(f"Failed to update progress tracker: {str(e)}")
             
             # Replace the method temporarily and add timing info
-            task.update_progress = enhanced_update_progress
+            task.update_progress = update_progress_with_tracking
             task._start_time = time.time()
             
             # Run the actual download worker

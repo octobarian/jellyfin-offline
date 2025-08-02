@@ -1484,7 +1484,7 @@ def get_fast_status():
         media_manager = current_app.config.get('MEDIA_MANAGER')
         config = current_app.config.get('MEDIA_CONFIG')
         
-        # Initialize enhanced fast status data structure with detailed service reporting
+        # Initialize fast status data structure with detailed service reporting
         status_data = {
             'timestamp': time.time(),
             'request_id': f"fast_status_{int(time.time() * 1000)}",
@@ -1604,7 +1604,7 @@ def get_fast_status():
             jellyfin_future = executor.submit(check_jellyfin_lightweight)
             local_future = executor.submit(check_local_media_count)
             
-            # Collect results with enhanced timeout handling and detailed status reporting
+            # Collect results with timeout handling and detailed status reporting
             try:
                 # Internet check with detailed status reporting
                 internet_connected, internet_duration, internet_method = internet_future.result(timeout=3)
@@ -1630,7 +1630,7 @@ def get_fast_status():
                 })
                 status_data['system_health']['warnings'].append('Internet connectivity check timed out')
             
-            # Jellyfin check with enhanced error handling (only if internet is available)
+            # Jellyfin check with error handling (only if internet is available)
             if status_data['services']['internet']['connected']:
                 try:
                     jellyfin_connected, jellyfin_duration = jellyfin_future.result(timeout=2)
@@ -1660,7 +1660,7 @@ def get_fast_status():
                     'status': 'skipped_no_internet'
                 })
             
-            # Local media check with enhanced status reporting
+            # Local media check with status reporting
             try:
                 local_available, local_count = local_future.result(timeout=1)
                 status_data['services']['local_media'].update({
@@ -1919,7 +1919,7 @@ def get_background_status():
                 duration = time.time() - jellyfin_start
                 return False, False, None, None, duration, str(e)
         
-        # Enhanced local media check with scan timing
+        #  local media check with scan timing
         def check_local_media_detailed():
             scan_start = time.time()
             
@@ -2025,7 +2025,7 @@ def get_background_status():
 @api_bp.route('/status')
 def get_system_status():
     """
-    Get comprehensive system status with enhanced error handling and detailed service reporting.
+    Get comprehensive system status with error handling and detailed service reporting.
 
     Query Parameters:
         skip_jellyfin (bool): If true, skip Jellyfin connection test to reduce server load
@@ -2050,7 +2050,7 @@ def get_system_status():
         
         logger.info(f"Status request: skip_jellyfin={skip_jellyfin}, timeout={timeout}s")
 
-        # Initialize enhanced status data structure with detailed service status reporting
+        # Initialize status data structure with detailed service status reporting
         status_data = {
             'timestamp': time.time(),
             'request_id': f"status_{int(time.time() * 1000)}",
@@ -2128,7 +2128,7 @@ def get_system_status():
             status_data['performance']['total_check_duration'] = time.time() - start_time
             return jsonify(status_data), 503
 
-        # Define enhanced check functions with comprehensive error handling
+        # Define check functions with comprehensive error handling
         def check_jellyfin_with_timeout():
             jellyfin_start = time.time()
             try:
@@ -2145,7 +2145,7 @@ def get_system_status():
                         'troubleshooting_hints': ['Connection test was skipped - use skip_jellyfin=false to test connection']
                     }
                 
-                # Use the enhanced connection test that returns ConnectionStatus object
+                # Use the connection test that returns ConnectionStatus object
                 conn_status = media_manager.jellyfin_service.test_connection()
                 duration = time.time() - jellyfin_start
                 
@@ -2302,7 +2302,7 @@ def get_system_status():
                 logger.error(f"Statistics gathering failed: {e}")
                 return None, duration, str(e)
 
-        # Run checks in parallel with enhanced timeout handling
+        # Run checks in parallel with timeout handling
         with ThreadPoolExecutor(max_workers=4) as executor:
             # Submit all checks
             jellyfin_future = executor.submit(check_jellyfin_with_timeout)
@@ -2361,7 +2361,7 @@ def get_system_status():
                 status_data['system_health']['critical_errors'].append(error_msg)
                 checks_failed += 1
 
-            # Collect VLC results with enhanced error handling
+            # Collect VLC results with error handling
             try:
                 vlc_result = vlc_future.result(timeout=2)
                 status_data['services']['vlc'].update({
@@ -2394,7 +2394,7 @@ def get_system_status():
                 status_data['system_health']['warnings'].append(error_msg)
                 checks_failed += 1
 
-            # Collect local media results with enhanced error handling
+            # Collect local media results with error handling
             try:
                 local_result = local_future.result(timeout=3)
                 status_data['services']['local_media'].update({
@@ -2432,7 +2432,7 @@ def get_system_status():
                 status_data['system_health']['warnings'].append(error_msg)
                 checks_failed += 1
 
-            # Collect statistics with enhanced error handling
+            # Collect statistics with error handling
             try:
                 stats, stats_duration, stats_error = stats_future.result(timeout=timeout/2)
                 if stats:

@@ -54,7 +54,6 @@ def create_app(config_path: str = None) -> Flask:
             api_key=config.jellyfin_api_key
         )
 
-        # --- IMPORTANT ADDITION HERE ---
         # Attempt to authenticate Jellyfin service on startup
         if config.jellyfin_server_url and config.jellyfin_api_key and config.jellyfin_username:
             app.logger.info("Attempting to authenticate Jellyfin service...")
@@ -69,7 +68,6 @@ def create_app(config_path: str = None) -> Flask:
                 app.logger.error("Jellyfin service authentication failed during startup. Media library features may be limited.")
         else:
             app.logger.warning("Jellyfin server URL, API Key, or Username is missing. Skipping initial authentication.")
-        # --- END OF IMPORTANT ADDITION ---
 
         vlc_controller = VLCController()
 
