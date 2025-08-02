@@ -5,12 +5,16 @@
 
 set -e
 
-# Check if running with sudo
-if [[ $EUID -ne 0 ]]; then
-    echo -e "\033[0;31m[ERROR]\033[0m This script must be run with sudo"
-    echo "Usage: sudo ./setup_config.sh"
-    exit 1
+# Check if we can use sudo (we need it for file operations)
+if ! sudo -n true 2>/dev/null; then
+    if [[ $EUID -ne 0 ]]; then
+        echo -e "\033[0;31m[ERROR]\033[0m This script requires sudo access for file operations"
+        echo "Please run: sudo ./setup_config.sh"
+        exit 1
+    fi
 fi
+
+log "Starting RV Media Player configuration setup..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -53,10 +57,7 @@ info() {
     echo -e "${BLUE}[$(date +'%H:%M:%S')] INFO: $1${NC}"
 }
 
-# Check if running as root
-if [[ $EUID -eq 0 ]]; then
-    error "This script should NOT be run as root. Run as a regular user with sudo access."
-fi
+# We're good to proceed - the script can be run with sudo
 
 # Check if application is installed
 if [[ ! -d "$APP_DIR" ]]; then
