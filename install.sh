@@ -148,11 +148,19 @@ mkdir -p "$MEDIA_DIR/movies" "$MEDIA_DIR/tv-shows" "$MEDIA_DIR/downloads" "$MEDI
 # Create media user if it doesn't exist
 if ! id "media" &>/dev/null; then
     log "Creating media user..."
-    # Create user without -m flag to avoid home directory creation issues
-    useradd -r -s /bin/bash -d "$APP_DIR" media
+    # Check if media group exists, if not create it
+    if ! getent group media >/dev/null; then
+        groupadd media
+        log "Created media group"
+    fi
+    # Create user with media as primary group
+    useradd -r -g media -s /bin/bash -d "$APP_DIR" media
     usermod -a -G audio,video,dialout,plugdev media
+    log "Created media user with media group"
 else
     log "Media user already exists"
+    # Ensure user is in the correct groups
+    usermod -a -G media,audio,video,dialout,plugdev media
 fi
 
 # Step 3: Copy application files
