@@ -177,7 +177,7 @@ log "Testing Jellyfin connection..."
 if curl -s -f "$JELLYFIN_URL/System/Info" > /dev/null; then
     log "✓ Jellyfin server is reachable"
 else
-    warn "✗ Could not reach Jellyfin server. Please check the URL and network connectivity."
+    warning "✗ Could not reach Jellyfin server. Please check the URL and network connectivity."
 fi
 
 # Create media directories if they don't exist
@@ -199,7 +199,7 @@ if [[ "$START_SERVICE" =~ ^[Yy]$ ]]; then
     if sudo systemctl is-active --quiet rv-media-player; then
         log "✓ RV Media Player service is running"
     else
-        warn "✗ Service failed to start. Check logs with: sudo journalctl -u rv-media-player"
+        warning "✗ Service failed to start. Check logs with: sudo journalctl -u rv-media-player"
     fi
 fi
 
