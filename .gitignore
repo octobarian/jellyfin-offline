@@ -1,0 +1,246 @@
+# RV Media Player .gitignore
+# Excludes configuration data, logs, cache, media files, and sensitive information
+
+# ===== CONFIGURATION FILES =====
+# Actual configuration files (keep templates)
+config/app_config.json
+config/.env
+.env
+.env.local
+.env.production
+.env.development
+
+# API keys and secrets
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.json
+api_keys.json
+
+# ===== LOGS AND RUNTIME DATA =====
+# Application logs
+logs/
+*.log
+*.log.*
+log/
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# ===== MEDIA AND CACHE =====
+# Media files and directories
+media/movies/
+media/tv-shows/
+media/downloads/
+media/local/
+media/cache/
+media/*.db
+media/*.sqlite
+media/*.sqlite3
+
+# Thumbnails and cache
+thumbnails/
+cache/
+*.cache
+.cache/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+local_media.db
+
+# ===== PYTHON =====
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# ===== DEVELOPMENT =====
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# ===== SYSTEM FILES =====
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ===== TEMPORARY FILES =====
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# ===== DEPLOYMENT =====
+# Docker
+.dockerignore
+Dockerfile.local
+
+# Deployment scripts (keep templates)
+deploy.sh
+deploy_local.sh
+
+# ===== JELLYFIN SPECIFIC =====
+# Jellyfin cache and metadata
+jellyfin_cache/
+.jellyfin/
+jellyfin_metadata/
+
+# Downloaded media metadata
+*.nfo
+*.jpg.backup
+*.png.backup
+
+# ===== ORANGE PI / EMBEDDED =====
+# Hardware-specific configs
+/boot/config.txt.backup
+/etc/systemd/system/rv-media-player.service.backup
+
+# Performance monitoring data
+performance_logs/
+monitoring/
+
+# ===== BACKUP FILES =====
+# Backup directories
+backups/
+backup/
+*.backup
+config_backup/
+data_backup/
+
+# ===== SECURITY =====
+# SSL certificates
+*.crt
+*.cert
+*.ca-bundle
+ssl/
+certs/
+
+# SSH keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+known_hosts
+
+# ===== CUSTOM ADDITIONS =====
+# User-specific media paths
+user_media/
+personal_media/
+
+# Custom scripts (keep templates)
+custom_setup.sh
+local_config.sh
+
+# Development testing
+test_media/
+sample_media/
+
+# Local documentation
+NOTES.md
+TODO.md
+DEVELOPMENT.md
+
+# ===== KEEP THESE (NEGATIVE PATTERNS) =====
+# Keep template files
+!*.template
+!config/*.template
+!systemd/*.service
+
+# Keep example files
+!*example*
+!*sample*
+
+# Keep documentation
+!README*.md
+!INSTALL*.md
+!LICENSE
