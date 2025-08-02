@@ -716,16 +716,17 @@ async function reloadServices() {
         console.log('Reload services response:', data);
         
         if (response.ok && data.success) {
-            let message = 'Services reloaded successfully';
-            if (data.jellyfin_configured) {
-                message += data.jellyfin_authenticated ? ' - Jellyfin connected' : ' - Jellyfin configured but not connected';
+            let message = data.message || 'Services reloaded successfully';
+            if (data.requires_restart) {
+                message += ' - Application restart required';
+                showMessage(message, 'warning');
+            } else {
+                showMessage(message, 'success');
+                // Refresh the page status
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
             }
-            showMessage(message, 'success');
-            
-            // Refresh the page status
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
         } else {
             showMessage(data.error || 'Failed to reload services', 'error');
         }

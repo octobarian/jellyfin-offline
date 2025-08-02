@@ -147,8 +147,20 @@ def update_config():
                     path = path.strip()
                     if path:
                         if not os.path.exists(path):
-                            logger.warning(f"Creating media directory: {path}")
-                            os.makedirs(path, exist_ok=True)
+                            try:
+                                logger.warning(f"Creating media directory: {path}")
+                                os.makedirs(path, exist_ok=True)
+                                logger.info(f"Successfully created directory: {path}")
+                            except PermissionError as e:
+                                logger.warning(f"Permission denied creating directory {path}: {e}")
+                                logger.warning(f"Directory {path} will be added to config but may not be accessible")
+                            except Exception as e:
+                                logger.error(f"Failed to create directory {path}: {e}")
+                                return jsonify({
+                                    'success': False,
+                                    'error': f'Failed to create media directory: {path}',
+                                    'message': f'Error: {str(e)}. Please create the directory manually or fix permissions.'
+                                }), 400
                         valid_paths.append(path)
                 current_config.local_media_paths = valid_paths
                 updated_fields.append('local_media_paths')
@@ -157,8 +169,20 @@ def update_config():
             download_dir = data['download_directory'].strip()
             if download_dir:
                 if not os.path.exists(download_dir):
-                    logger.info(f"Creating download directory: {download_dir}")
-                    os.makedirs(download_dir, exist_ok=True)
+                    try:
+                        logger.info(f"Creating download directory: {download_dir}")
+                        os.makedirs(download_dir, exist_ok=True)
+                        logger.info(f"Successfully created download directory: {download_dir}")
+                    except PermissionError as e:
+                        logger.warning(f"Permission denied creating download directory {download_dir}: {e}")
+                        logger.warning(f"Download directory will be set but may not be accessible")
+                    except Exception as e:
+                        logger.error(f"Failed to create download directory {download_dir}: {e}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'Failed to create download directory: {download_dir}',
+                            'message': f'Error: {str(e)}. Please create the directory manually or fix permissions.'
+                        }), 400
                 current_config.download_directory = download_dir
                 updated_fields.append('download_directory')
         
@@ -184,30 +208,10 @@ def update_config():
                 current_app.config['MEDIA_CONFIG'] = current_config
                 logger.info(f"Configuration saved successfully. Fields: {updated_fields}")
                 
-                # If Jellyfin configuration was updated, reload services
+                # If Jellyfin configuration was updated, note that restart is needed
                 jellyfin_fields = ['jellyfin_server_url', 'jellyfin_username', 'jellyfin_api_key']
                 if any(field in updated_fields for field in jellyfin_fields):
-                    logger.info("Jellyfin configuration updated, reloading services...")
-                    try:
-                        # Reinitialize Jellyfin service
-                        from ..services.jellyfin_service import JellyfinService
-                        
-                        new_jellyfin_service = JellyfinService(
-                            server_url=current_config.jellyfin_server_url,
-                            username=current_config.jellyfin_username,
-                            api_key=current_config.jellyfin_api_key
-                        )
-                        
-                        # Update media manager
-                        media_manager = current_app.config.get('MEDIA_MANAGER')
-                        if media_manager:
-                            media_manager.jellyfin_service = new_jellyfin_service
-                            current_app.config['MEDIA_MANAGER'] = media_manager
-                            logger.info("Services reloaded with new Jellyfin configuration")
-                        
-                    except Exception as reload_error:
-                        logger.error(f"Failed to reload services: {reload_error}")
-                        # Don't fail the save operation if service reload fails
+                    logger.info("Jellyfin configuration updated - application restart recommended for changes to take effect")
                 
                 return jsonify({
                     'success': True,
@@ -402,43 +406,14 @@ def reload_services():
                 'error': 'Media manager not available'
             }), 500
         
-        # Reinitialize Jellyfin service with new configuration
-        from ..services.jellyfin_service import JellyfinService
-        
-        new_jellyfin_service = JellyfinService(
-            server_url=config.jellyfin_server_url,
-            username=config.jellyfin_username,
-            api_key=config.jellyfin_api_key
-        )
-        
-        # Test authentication if credentials are provided
-        auth_success = False
-        if config.jellyfin_server_url and config.jellyfin_api_key:
-            logger.info("Testing Jellyfin authentication with new configuration...")
-            try:
-                auth_result = new_jellyfin_service.authenticate(
-                    server_url=config.jellyfin_server_url,
-                    api_key=config.jellyfin_api_key,
-                    username=config.jellyfin_username
-                )
-                auth_success = bool(auth_result)
-                if auth_success:
-                    logger.info("Jellyfin service authenticated successfully with new configuration")
-                else:
-                    logger.warning("Jellyfin authentication failed with new configuration")
-            except Exception as auth_error:
-                logger.error(f"Jellyfin authentication error: {auth_error}")
-        
-        # Update the media manager's Jellyfin service
-        media_manager.jellyfin_service = new_jellyfin_service
-        
-        # Update the app config
-        current_app.config['MEDIA_MANAGER'] = media_manager
+        # For now, just return success - service reload requires app restart
+        # TODO: Implement proper service reinitialization
+        logger.info("Service reload requested - restart application to apply changes")
         
         return jsonify({
             'success': True,
-            'message': 'Services reloaded successfully',
-            'jellyfin_authenticated': auth_success,
+            'message': 'Configuration updated - please restart the application to apply changes',
+            'requires_restart': True,
             'jellyfin_configured': bool(config.jellyfin_server_url and config.jellyfin_api_key)
         })
         
