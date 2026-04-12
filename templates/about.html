@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}About - RV Media Player{% endblock %}
+
+{% block head %}
+<style>
+    .about-grid {
+        display: grid;
+        gap: 1.5rem;
+        max-width: 860px;
+    }
+
+    .about-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.75rem 2rem;
+    }
+
+    .about-card h2 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .about-card ul,
+    .about-card ol {
+        padding-left: 1.5rem;
+        line-height: 1.9;
+        color: var(--text-secondary);
+    }
+
+    .about-card p {
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 0.5rem;
+    }
+
+    .about-card a {
+        color: var(--accent);
+        text-decoration: none;
+    }
+
+    .about-card a:hover {
+        text-decoration: underline;
+    }
+
+    .page-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.75rem;
+        color: var(--text-primary);
+    }
+
+    .version-badge {
+        display: inline-block;
+        background: rgba(var(--accent-rgb), 0.15);
+        color: var(--accent);
+        border: 1px solid rgba(var(--accent-rgb), 0.3);
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: 0.75rem;
+        vertical-align: middle;
+    }
+
+    .about-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">
+    {{ app_info.name }}
+    <span class="version-badge">v{{ app_info.version }}</span>
+</h1>
+
+<div class="about-grid">
+    <div class="about-card">
+        <h2>About</h2>
+        <p>RV Media Player is a self-hosted media player built for Raspberry Pi. It connects to your Jellyfin server to sync your movie and TV library, lets you download titles to local storage, and plays them back through VLC - with or without an internet connection.</p>
+        <p>The web interface runs on the Pi and is accessible from any browser on your local network. Once content is downloaded, the entire experience is fully offline.</p>
+    </div>
+
+    <div class="about-card">
+        <h2>What it does</h2>
+        <ul>
+            <li>Browse your full Jellyfin library from any device on the network</li>
+            <li>Download movies and shows to a local drive or USB mount for offline use</li>
+            <li>Play local files in VLC with one click - normal window with controls</li>
+            <li>Stream directly from Jellyfin through VLC when online</li>
+            <li>Tracks download progress in real time with poster art</li>
+            <li>Works in offline mode - local media is always accessible</li>
+            <li>Configurable media storage path, including USB mounts like <code>/mnt/stor</code></li>
+            <li>Runs as a systemd service and launches automatically on boot</li>
+        </ul>
+    </div>
+
+    <div class="about-card">
+        <h2>Setup</h2>
+        <ol>
+            <li>Clone the repo and run <code>sudo ./install.sh</code></li>
+            <li>The installer prompts for your Jellyfin URL, username, API key, and media storage path</li>
+            <li>A desktop shortcut is created at <code>~/Desktop/RV Media Player</code></li>
+            <li>The app is available at <code>http://localhost:5000</code> or <code>http://&lt;pi-ip&gt;:5000</code></li>
+        </ol>
+    </div>
+
+    <div class="about-card">
+        <h2>Requirements</h2>
+        <ul>
+            <li>Raspberry Pi running Raspberry Pi OS (Bullseye or Bookworm)</li>
+            <li>A running Jellyfin server with an API key</li>
+            <li>VLC Media Player (installed automatically by <code>install.sh</code>)</li>
+            <li>Local storage or a USB drive for downloaded media</li>
+        </ul>
+    </div>
+
+    <div class="about-card">
+        <h2>Troubleshooting</h2>
+        <ul>
+            <li>Check the <a href="/health">system status</a> page for service health</li>
+            <li>Verify your Jellyfin credentials in <a href="/config">Settings</a></li>
+            <li>Run the VLC path test in Settings if playback does not launch</li>
+            <li>Application logs are written to the <code>logs/</code> directory</li>
+        </ul>
+    </div>
+
+    <div class="about-actions">
+        <a href="/" class="btn">Back to Library</a>
+        <a href="/config" class="btn btn-secondary">Settings</a>
+    </div>
+</div>
+{% endblock %}

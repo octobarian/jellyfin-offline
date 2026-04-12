@@ -1,0 +1,17 @@
+[Unit]
+Description=RV Media Player Web Interface (Nginx)
+Documentation=https://github.com/your-repo/rv-media-player
+After=network.target rv-media-player.service
+Wants=rv-media-player.service
+
+[Service]
+Type=forking
+PIDFile=/run/nginx.pid
+ExecStartPre=/usr/bin/nginx -t
+ExecStart=/usr/bin/nginx
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s QUIT $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
