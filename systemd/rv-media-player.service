@@ -1,0 +1,45 @@
+[Unit]
+Description=RV Media Player - Jellyfin Offline Media Server
+Documentation=https://github.com/your-repo/rv-media-player
+After=network-online.target
+Wants=network-online.target
+Requires=rv-media-player-optimize.service
+
+[Service]
+Type=simple
+User=media
+Group=media
+SupplementaryGroups=audio video dialout plugdev
+WorkingDirectory=/opt/rv-media-player/app
+Environment=PYTHONPATH=/opt/rv-media-player/app
+Environment=FLASK_APP=app.py
+Environment=FLASK_ENV=production
+ExecStart=/opt/rv-media-player/venv/bin/python -m app.app
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rv-media-player
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/rv-media-player /media /tmp
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Process priority
+Nice=-5
+IOSchedulingClass=1
+IOSchedulingPriority=4
+
+[Install]
+WantedBy=multi-user.target

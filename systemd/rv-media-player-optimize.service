@@ -1,0 +1,23 @@
+[Unit]
+Description=RV Media Player Orange Pi Optimizations
+Documentation=https://github.com/your-repo/rv-media-player
+DefaultDependencies=false
+After=sysinit.target local-fs.target
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/rv-media-player/optimize_orangepi.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rv-media-player-optimize
+
+# Security settings
+NoNewPrivileges=false
+PrivateTmp=false
+ProtectSystem=false
+ProtectHome=false
+
+[Install]
+WantedBy=basic.target

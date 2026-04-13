@@ -1,0 +1,39 @@
+# RV Media Player - Python dependencies
+# Minimum-version pins; pip resolves compatible versions for the installed Python.
+
+# Web framework
+Flask>=3.0.0
+Werkzeug>=3.0.0
+
+# HTTP
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Config / environment
+python-dotenv>=1.0.0
+PyYAML>=6.0.1
+jsonschema>=4.19.0
+
+# WSGI server
+gunicorn>=21.2.0
+
+# System / process
+psutil>=5.9.0
+watchdog>=4.0.0
+schedule>=1.2.0
+
+# Media
+python-vlc>=3.0.18122
+mutagen>=1.47.0
+pymediainfo>=6.0.0
+Pillow>=11.0.0
+
+# Utilities
+click>=8.1.0
+colorama>=0.4.6
+tqdm>=4.66.0
+humanize>=4.8.0
+qrcode[pil]>=8.0.0
+
+# Security
+cryptography>=42.0.0
