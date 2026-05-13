@@ -167,6 +167,10 @@ temp/
 *.backup
 *.old
 
+# Runtime state files
+.download_state.pkl
+*.pkl
+
 # ===== DEPLOYMENT =====
 # Docker
 .dockerignore
