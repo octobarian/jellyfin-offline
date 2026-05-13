@@ -5,11 +5,13 @@ Handles VLC media player integration for local file playback and streaming.
 Provides methods for launching VLC processes, managing playback, and detecting VLC installation.
 """
 
+import glob
 import logging
 import os
 import subprocess
 import platform
 import shutil
+import time
 from typing import Optional, List
 from pathlib import Path
 
@@ -143,23 +145,46 @@ class VLCController:
         """
         Environment for the VLC subprocess.
 
-        Ensures DISPLAY and XAUTHORITY are set so VLC can reach the X server
-        when launched from a systemd service that may not inherit them.
+        Ensures DISPLAY, WAYLAND_DISPLAY, XDG_RUNTIME_DIR, and XAUTHORITY are
+        set so VLC can reach the display server when launched from a systemd
+        service that does not inherit the desktop session environment.
         Do NOT override QT_QPA_PLATFORM - forcing 'xcb' breaks VLC on Pi
         configs where the Qt xcb platform plugin is not installed.
         """
         env = os.environ.copy()
+
+        # X11 display fallback (used directly or via XWayland)
         env.setdefault("DISPLAY", ":0")
 
-        # Ensure XAUTHORITY is available - systemd services often don't inherit it.
+        # Wayland display fallback for Pi OS Bookworm (Wayfire/Wayland default)
+        env.setdefault("WAYLAND_DISPLAY", "wayland-1")
+
+        # XDG_RUNTIME_DIR is required for Wayland socket access
+        if "XDG_RUNTIME_DIR" not in env:
+            try:
+                uid = os.getuid()
+                runtime_dir = f"/run/user/{uid}"
+                if os.path.exists(runtime_dir):
+                    env["XDG_RUNTIME_DIR"] = runtime_dir
+            except Exception:
+                pass
+
+        # XAUTHORITY for X11/XWayland auth.  Systemd services don't inherit
+        # it, and the default Pi user is 'pi' — not 'media' or 'root'.
         if "XAUTHORITY" not in env:
-            for candidate in [
+            candidates = [
                 os.path.expanduser("~/.Xauthority"),
+                "/home/pi/.Xauthority",
                 "/home/media/.Xauthority",
                 "/root/.Xauthority",
-            ]:
+            ]
+            # Catch any other user home directories on this machine
+            candidates.extend(glob.glob("/home/*/.Xauthority"))
+
+            for candidate in candidates:
                 if os.path.exists(candidate):
                     env["XAUTHORITY"] = candidate
+                    logger.debug(f"Using XAUTHORITY: {candidate}")
                     break
 
         return env
@@ -169,14 +194,25 @@ class VLCController:
         """
         Video-output flags for Raspberry Pi / Linux.
 
-        --vout=xcb_x11 : software X11 blitting.  The default GL renderer opens
-                         a window but renders nothing on most Pi GPU configs.
-        Do NOT add --intf=qt  : if the vlc-plugin-qt package is missing VLC
-                                exits immediately - use VLC's auto-detected
-                                default interface instead.
-        Do NOT add --no-embedded-video : detaches video into a borderless
-                                overlay window with no controls toolbar.
+        Pi OS Bookworm (and later) runs Wayland by default (Wayfire).  Forcing
+        --vout=xcb_x11 on a Wayland-only session causes VLC to exit immediately
+        with no window.  On X11 sessions (Pi OS Bullseye and earlier, or when
+        Wayland is disabled) the GL renderer silently produces a black window on
+        most Pi GPU configs, so xcb_x11 (software blitting) is still needed.
+
+        Detection uses the session environment inherited by the Flask process:
+        - WAYLAND_DISPLAY set  → Wayland session → let VLC auto-detect output
+        - XDG_SESSION_TYPE=wayland → same
+        - Otherwise            → assume X11 → force xcb_x11
+
+        Do NOT add --intf=qt  : if vlc-plugin-qt is missing VLC exits immediately.
+        Do NOT add --no-embedded-video : produces a borderless overlay with no
+                                         controls toolbar.
         """
+        is_wayland = bool(os.environ.get("WAYLAND_DISPLAY")) or \
+                     os.environ.get("XDG_SESSION_TYPE") == "wayland"
+        if is_wayland:
+            return []  # Let VLC auto-detect (uses wl or gl output on Wayland)
         return ["--vout=xcb_x11"]
 
     def play_local_file(self, file_path: str, fullscreen: bool = False,
@@ -221,13 +257,24 @@ class VLCController:
 
         logger.info(f"Launching VLC: {' '.join(cmd)}")
         try:
+            startupinfo = None
+            if platform.system() == "Windows":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_SHOW
+
             self.current_process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 env=self._vlc_env(),
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0,
+                startupinfo=startupinfo,
             )
+            time.sleep(0.4)
+            if self.current_process.poll() is not None:
+                logger.error(f"VLC exited immediately (code {self.current_process.returncode})")
+                return False
             return True
         except Exception as e:
             logger.error(f"Failed to launch VLC: {e}")
@@ -273,13 +320,24 @@ class VLCController:
 
         logger.info(f"Launching VLC stream: {' '.join(cmd)}")
         try:
+            startupinfo = None
+            if platform.system() == "Windows":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_SHOW
+
             self.current_process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 env=self._vlc_env(),
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0,
+                startupinfo=startupinfo,
             )
+            time.sleep(0.4)
+            if self.current_process.poll() is not None:
+                logger.error(f"VLC stream exited immediately (code {self.current_process.returncode})")
+                return False
             return True
         except Exception as e:
             logger.error(f"Failed to launch VLC stream: {e}")

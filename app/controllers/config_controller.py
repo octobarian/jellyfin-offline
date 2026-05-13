@@ -431,6 +431,50 @@ def reload_services():
         }), 500
 
 
+@config_bp.route('/api/check-update')
+def check_update():
+    """
+    Query GitHub for the latest release and compare with the installed version.
+
+    Returns:
+        JSON with current_version, latest_version, update_available, changelog, etc.
+    """
+    try:
+        from ..services.update_service import check_for_updates
+        result = check_for_updates()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Update check error: {e}")
+        return jsonify({"error": str(e), "update_available": False}), 500
+
+
+@config_bp.route('/api/apply-update', methods=['POST'])
+def apply_update():
+    """
+    Download and apply a release tarball, then schedule a service restart.
+
+    JSON Body:
+        tarball_url (str): GitHub tarball URL from /api/check-update response
+
+    Returns:
+        JSON with success, new_version, message (or error).
+    """
+    try:
+        from ..services.update_service import apply_update as _apply, schedule_restart
+        data = request.get_json() or {}
+        tarball_url = data.get("tarball_url", "").strip()
+        if not tarball_url:
+            return jsonify({"error": "tarball_url is required"}), 400
+
+        result = _apply(tarball_url)
+        if result.get("success"):
+            schedule_restart(delay=3.0)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Apply update error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @config_bp.route('/api/reset', methods=['POST'])
 def reset_config():
     """

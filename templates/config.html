@@ -242,12 +242,99 @@
         .config-actions {
             flex-direction: column;
         }
-        
+
         .test-button {
             margin-left: 0;
             margin-top: 0.5rem;
         }
     }
+
+    /* ── Updates section ── */
+    .update-version-row {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .update-version-label {
+        font-size: 0.9rem;
+        color: #aaa;
+    }
+    .update-version-label strong {
+        color: #fff;
+        margin-left: 0.3rem;
+    }
+    .update-result-box {
+        border-radius: 8px;
+        padding: 1.25rem 1.5rem;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+    .update-result-box.up-to-date {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #6ee7b7;
+    }
+    .update-result-box.update-available {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        color: #fde68a;
+    }
+    .update-result-box.update-error {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #fca5a5;
+    }
+    .update-result-box.updating {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        color: #93c5fd;
+    }
+    .update-result-box.update-done {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.5);
+        color: #6ee7b7;
+    }
+    .update-changelog {
+        margin-top: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: rgba(0,0,0,0.25);
+        border-radius: 6px;
+        white-space: pre-wrap;
+        font-size: 0.82rem;
+        color: #d1d5db;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .update-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .btn-update {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        border: none;
+        color: #fff;
+        font-weight: 600;
+    }
+    .btn-update:hover { opacity: 0.9; }
+    .btn-update:disabled { opacity: 0.5; cursor: not-allowed; }
+    .update-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 0.4rem;
+        vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
@@ -438,6 +525,27 @@
         <button type="button" class="btn btn-secondary" onclick="testSave()" style="background-color: #ff9800;">Test Save (Debug)</button>
     </div>
 </form>
+<!-- App Updates Section (outside the config form) -->
+<div class="config-section" id="updatesSection" style="margin-top: 2rem;">
+    <div class="section-header">
+        <h2>🔄 App Updates</h2>
+        <div class="section-status">
+            <div class="status-indicator" id="updateIndicator"></div>
+            <span id="updateStatusText">Not checked</span>
+        </div>
+    </div>
+
+    <div class="update-version-row">
+        <div class="update-version-label">
+            Installed version: <strong id="currentVersionDisplay">—</strong>
+        </div>
+        <button type="button" class="btn btn-secondary" id="checkUpdateBtn" onclick="checkForUpdates()">
+            <span class="btn-icon">🔍</span>Check for Updates
+        </button>
+    </div>
+
+    <div id="updateResultArea"></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -1338,6 +1446,168 @@ async function createDownloadDir() {
         }
     }
 }
+
+// ── Update system ────────────────────────────────────────────────────────────
+
+let _latestRelease = null; // cached result from last check
+
+async function checkForUpdates() {
+    const btn = document.getElementById('checkUpdateBtn');
+    const area = document.getElementById('updateResultArea');
+    const indicator = document.getElementById('updateIndicator');
+    const statusText = document.getElementById('updateStatusText');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="update-spinner"></span>Checking…';
+    area.innerHTML = '';
+    indicator.className = 'status-indicator testing';
+    statusText.textContent = 'Checking…';
+
+    try {
+        const resp = await fetch('/config/api/check-update');
+        const data = await resp.json();
+
+        // Always show current version
+        const cur = document.getElementById('currentVersionDisplay');
+        if (cur) cur.textContent = data.current_version || '—';
+
+        if (data.error) {
+            indicator.className = 'status-indicator invalid';
+            statusText.textContent = 'Check failed';
+            area.innerHTML = `
+                <div class="update-result-box update-error">
+                    ⚠️ Could not reach GitHub: ${escapeHtml(data.error)}
+                </div>`;
+            return;
+        }
+
+        _latestRelease = data;
+
+        if (!data.update_available) {
+            indicator.className = 'status-indicator valid';
+            statusText.textContent = `v${data.current_version} — up to date`;
+            area.innerHTML = `
+                <div class="update-result-box up-to-date">
+                    ✅ You're running the latest version (v${escapeHtml(data.current_version)}).
+                </div>`;
+        } else {
+            indicator.className = 'status-indicator' ; // amber via CSS
+            indicator.style.backgroundColor = '#f59e0b';
+            statusText.textContent = `v${data.latest_version} available`;
+            const published = data.published_at
+                ? new Date(data.published_at).toLocaleDateString()
+                : '';
+            area.innerHTML = `
+                <div class="update-result-box update-available">
+                    <strong>🚀 Update available: ${escapeHtml(data.release_name)}</strong>
+                    ${published ? `<span style="opacity:.7;margin-left:.75rem;font-size:.8rem">${published}</span>` : ''}
+                    <div class="update-changelog">${escapeHtml(data.changelog)}</div>
+                    <div class="update-actions">
+                        <button class="btn btn-update" id="applyUpdateBtn"
+                            onclick="applyUpdate('${escapeHtml(data.tarball_url)}')">
+                            ⬇️ Install v${escapeHtml(data.latest_version)}
+                        </button>
+                        ${data.release_url ? `<a href="${escapeHtml(data.release_url)}" target="_blank"
+                            class="btn btn-secondary" style="text-decoration:none">View on GitHub ↗</a>` : ''}
+                    </div>
+                </div>`;
+        }
+    } catch (err) {
+        console.error('Update check failed:', err);
+        indicator.className = 'status-indicator invalid';
+        statusText.textContent = 'Check failed';
+        area.innerHTML = `<div class="update-result-box update-error">⚠️ Network error: ${escapeHtml(String(err))}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="btn-icon">🔍</span>Check for Updates';
+    }
+}
+
+async function applyUpdate(tarballUrl) {
+    const btn = document.getElementById('applyUpdateBtn');
+    const area = document.getElementById('updateResultArea');
+
+    if (!confirm('Apply the update now?\n\nThe app will download the release, replace its files, and restart. You may lose your connection briefly — just refresh the page after ~15 seconds.')) {
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="update-spinner"></span>Updating…';
+    }
+
+    // Show progress UI while we wait
+    const progressBox = document.createElement('div');
+    progressBox.className = 'update-result-box updating';
+    progressBox.style.marginTop = '0.75rem';
+    progressBox.innerHTML = `
+        <span class="update-spinner"></span>
+        Downloading and applying update — this may take up to a minute…`;
+    area.appendChild(progressBox);
+
+    try {
+        const resp = await fetch('/config/api/apply-update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tarball_url: tarballUrl }),
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            area.innerHTML = `
+                <div class="update-result-box update-done">
+                    ✅ Updated to <strong>v${escapeHtml(data.new_version)}</strong>.
+                    ${data.message ? `<br>${escapeHtml(data.message)}` : ''}
+                    <br><br>
+                    <span id="reloadCountdown">Refreshing page in <strong id="reloadSecs">15</strong>s…</span>
+                </div>`;
+            document.getElementById('updateStatusText').textContent = `v${data.new_version} installed`;
+
+            // Countdown then reload so the restarted service is ready
+            let secs = 15;
+            const ticker = setInterval(() => {
+                secs--;
+                const el = document.getElementById('reloadSecs');
+                if (el) el.textContent = secs;
+                if (secs <= 0) {
+                    clearInterval(ticker);
+                    window.location.reload();
+                }
+            }, 1000);
+        } else {
+            area.innerHTML = `
+                <div class="update-result-box update-error">
+                    ❌ Update failed: ${escapeHtml(data.error || 'Unknown error')}
+                    <br><small>Check the application logs for details.</small>
+                </div>`;
+        }
+    } catch (err) {
+        console.error('Apply update failed:', err);
+        area.innerHTML = `
+            <div class="update-result-box update-error">
+                ❌ Network error during update: ${escapeHtml(String(err))}
+            </div>`;
+    }
+}
+
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+}
+
+// Populate current version on load
+document.addEventListener('DOMContentLoaded', function () {
+    fetch('/config/api/check-update')
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('currentVersionDisplay');
+            if (el && data.current_version) el.textContent = data.current_version;
+        })
+        .catch(() => {}); // silent on error — user can still click the button
+});
+
+// ── End update system ─────────────────────────────────────────────────────────
 
 function showMessage(message, type) {
     // Use ToastManager if available, otherwise fallback to custom implementation

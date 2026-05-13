@@ -124,9 +124,10 @@ def about():
         Rendered HTML template with application info
     """
     try:
+        from ..services.update_service import get_current_version
         app_info = {
             'name': 'RV Media Player',
-            'version': '1.0.0',
+            'version': get_current_version(),
             'description': 'Unified media player for RV environments with offline/online support'
         }
         

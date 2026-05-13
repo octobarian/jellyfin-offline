@@ -1847,6 +1847,25 @@
         color: var(--error);
     }
 
+    .large-file-confirm-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.82rem;
+        color: var(--text-muted, #aaa);
+        cursor: pointer;
+        padding: 6px 2px;
+        margin-bottom: 4px;
+        user-select: none;
+    }
+    .large-file-confirm-label input[type="checkbox"] {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        cursor: pointer;
+        accent-color: var(--accent, #7c6af7);
+    }
+
     /* Delete button in overlay */
     .btn-delete-overlay {
         background: rgba(220, 38, 38, 0.12);
@@ -3344,17 +3363,23 @@ function createOverlayActionButtons(media) {
 
             if (connectivity.canDownload) {
                 if (isLargeFile) {
-                    // Hard block - show warning and disabled button
+                    const checkId = `largefile-confirm-${media.id}`;
                     buttons.push(`
                         <div class="download-warning download-blocked">
                             ${icon('alert-circle')}
-                            <span>This file is ${formatFileSize(fileSizeBytes)} - too large to save locally. Download is disabled.</span>
+                            <span>This file is ${formatFileSize(fileSizeBytes)} — larger than 8.2 GB. Downloading may be slow or fail.</span>
                         </div>
+                        <label class="large-file-confirm-label">
+                            <input type="checkbox" id="${checkId}"
+                                onchange="toggleLargeFileDownload('${media.id}', '${checkId}')">
+                            I understand this file is huge and want to download anyway
+                        </label>
                     `);
                     buttons.push(`
-                        <button class="overlay-action-btn disabled" disabled title="File too large to download">
+                        <button class="overlay-action-btn disabled" disabled id="downloadBtn_${media.id}"
+                            onclick="startDownloadWithSpaceCheck('${media.id}', ${fileSizeBytes}); hideActionOverlay();">
                             <span class="btn-icon">${icon('download')}</span>
-                            <span class="btn-text">Download (Too Large)</span>
+                            <span class="btn-text">Download</span>
                         </button>
                     `);
                 } else {
@@ -3796,6 +3821,15 @@ async function startDownloadWithSpaceCheck(mediaId, fileSizeBytes) {
         } catch (_) { /* proceed even if check fails */ }
     }
     downloadMedia(mediaId);
+}
+
+function toggleLargeFileDownload(mediaId, checkId) {
+    const checkbox = document.getElementById(checkId);
+    const btn = document.getElementById(`downloadBtn_${mediaId}`);
+    if (!btn) return;
+    const checked = checkbox && checkbox.checked;
+    btn.disabled = !checked;
+    btn.classList.toggle('disabled', !checked);
 }
 
 async function downloadMedia(mediaId) {
