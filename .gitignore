@@ -219,6 +219,10 @@ id_ed25519
 id_ed25519.pub
 known_hosts
 
+# ===== CLAUDE AI =====
+.claude/
+CLAUDE.md
+
 # ===== CUSTOM ADDITIONS =====
 # User-specific media paths
 user_media/
