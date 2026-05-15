@@ -15,6 +15,52 @@ config_bp = Blueprint('config', __name__)
 logger = logging.getLogger(__name__)
 
 
+def _reinitialize_jellyfin_service(config) -> tuple:
+    """Replace the live JellyfinService with a freshly authenticated instance.
+
+    Returns (reinitialized: bool, auth_success: bool).
+    """
+    from flask import current_app
+    from ..services.jellyfin_service import JellyfinService
+
+    media_manager = current_app.config.get('MEDIA_MANAGER')
+    if not media_manager:
+        logger.warning("Cannot reinitialize JellyfinService: media manager unavailable")
+        return False, False
+
+    if not config.jellyfin_server_url or not config.jellyfin_api_key:
+        logger.info("Jellyfin credentials incomplete – skipping reinit")
+        return False, False
+
+    try:
+        new_service = JellyfinService(
+            server_url=config.jellyfin_server_url,
+            username=config.jellyfin_username,
+            api_key=config.jellyfin_api_key
+        )
+        auth_success = new_service.authenticate(
+            server_url=config.jellyfin_server_url,
+            api_key=config.jellyfin_api_key,
+            username=config.jellyfin_username
+        )
+        media_manager.jellyfin_service = new_service
+
+        # Flush remote/unified caches so next fetch uses new credentials
+        with media_manager._cache_lock:
+            media_manager._unified_media_cache.clear()
+            media_manager._cache_timestamp = 0
+        media_manager._remote_media_cache = []
+        media_manager._remote_cache_timestamp = 0
+        media_manager._comparison_cache = None
+        media_manager._comparison_timestamp = 0
+
+        logger.info(f"JellyfinService reinitialized. Auth {'successful' if auth_success else 'failed'}")
+        return True, auth_success
+    except Exception as e:
+        logger.error(f"Failed to reinitialize JellyfinService: {e}")
+        return False, False
+
+
 @config_bp.route('/')
 def config_interface():
     """
@@ -208,15 +254,19 @@ def update_config():
                 current_app.config['MEDIA_CONFIG'] = current_config
                 logger.info(f"Configuration saved successfully. Fields: {updated_fields}")
                 
-                # If Jellyfin configuration was updated, note that restart is needed
+                # Reinitialize JellyfinService live when credentials change
                 jellyfin_fields = ['jellyfin_server_url', 'jellyfin_username', 'jellyfin_api_key']
+                jellyfin_reinitialized = False
+                jellyfin_auth_success = False
                 if any(field in updated_fields for field in jellyfin_fields):
-                    logger.info("Jellyfin configuration updated - application restart recommended for changes to take effect")
-                
+                    jellyfin_reinitialized, jellyfin_auth_success = _reinitialize_jellyfin_service(current_config)
+
                 return jsonify({
                     'success': True,
                     'message': 'Configuration updated successfully',
-                    'updated_fields': updated_fields
+                    'updated_fields': updated_fields,
+                    'jellyfin_reinitialized': jellyfin_reinitialized,
+                    'jellyfin_auth_success': jellyfin_auth_success
                 })
             else:
                 logger.error("Configuration save returned False")
@@ -411,14 +461,13 @@ def reload_services():
                 'error': 'Media manager not available'
             }), 500
         
-        # For now, just return success - service reload requires app restart
-        # TODO: Implement proper service reinitialization
-        logger.info("Service reload requested - restart application to apply changes")
-        
+        reinitialized, auth_success = _reinitialize_jellyfin_service(config)
+
         return jsonify({
             'success': True,
-            'message': 'Configuration updated - please restart the application to apply changes',
-            'requires_restart': True,
+            'message': 'Services reloaded successfully' if reinitialized else 'No Jellyfin credentials to reload',
+            'jellyfin_reinitialized': reinitialized,
+            'jellyfin_auth_success': auth_success,
             'jellyfin_configured': bool(config.jellyfin_server_url and config.jellyfin_api_key)
         })
         

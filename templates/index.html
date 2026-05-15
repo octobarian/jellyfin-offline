@@ -2026,8 +2026,8 @@
         <option selected value="movies">Movies</option>
         <option value="tv">TV Shows</option>
     </select>
-    <button class="btn" onclick="refreshLibrary()">Refresh</button>
-    <button class="btn btn-secondary" onclick="syncLibraries()">Sync</button>
+    <button class="btn" onclick="softRefresh()">Soft Refresh</button>
+    <button class="btn btn-secondary" onclick="hardRefresh()">Hard Refresh</button>
     <button class="btn btn-secondary" onclick="toggleDownloadQueue()" id="downloadQueueBtn" style="display: none;">
         <span>⬇️</span> Downloads <span class="download-count" id="downloadCount">0</span>
     </button>
@@ -4497,56 +4497,48 @@ function getConnectivitySummary() {
     };
 }
 
-async function refreshLibrary() {
-    // Force a fresh status check then reload the media library
+async function softRefresh() {
+    // Fast status check + cache-busted media reload (no full rescan)
     await checkStatus();
     if (window.progressiveLoader) window.progressiveLoader.clearCache();
     await loadMediaLibrary(true);
 }
 
-async function syncLibraries() {
-    // Check connectivity before attempting sync
+// Keep alias so any existing internal callers still work
+function refreshLibrary() { return softRefresh(); }
+
+async function hardRefresh() {
+    // Full media scan: rescans local dirs + fetches Jellyfin. Works offline (local only).
     if (!canAccessRemoteMedia()) {
-        if (isOfflineMode()) {
-            showMessage('Cannot sync in offline mode. Internet connection required.', 'warning');
-        } else {
-            showMessage('Cannot sync. Jellyfin server not available.', 'warning');
-        }
-        return;
+        showMessage('Jellyfin unavailable - scanning local media only', 'warning');
     }
-    
+
     try {
-        showMessage('Starting library sync...', 'info');
-        
+        showMessage('Starting full media scan...', 'info');
+
         const response = await fetch('/api/sync', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                mode: 'immediate'  // Request immediate synchronization
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: 'immediate' })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok && data.success) {
-            showMessage('Library sync completed', 'success');
+            showMessage('Full scan completed', 'success');
+            if (window.progressiveLoader) window.progressiveLoader.clearCache();
             await loadMediaLibrary(true);
         } else {
-            showMessage(data.error || 'Failed to sync libraries', 'error');
+            showMessage(data.error || 'Full scan failed', 'error');
         }
     } catch (error) {
-        console.error('Error syncing libraries:', error);
-        
-        // Check if error is due to connectivity
-        if (!connectivityStatus.internet) {
-            showMessage('Sync failed: No internet connection', 'error');
-        } else {
-            showMessage('Failed to sync libraries', 'error');
-        }
+        console.error('Hard refresh error:', error);
+        showMessage('Full scan failed', 'error');
     }
 }
+
+// Keep alias so any existing internal callers still work
+function syncLibraries() { return hardRefresh(); }
 
 // Background progress indicator functions
 function showBackgroundProgress(show = true) {
