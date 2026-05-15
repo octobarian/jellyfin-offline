@@ -2237,6 +2237,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load media library immediately (local-first, non-blocking)
     loadMediaLibrary();
 
+    // Restore any downloads that were running before the last page refresh.
+    recoverActiveDownloads();
+
     // Initialise storage pill
     initStoragePill();
 
@@ -2303,6 +2306,9 @@ async function loadMediaLibrary(forceRefresh = false) {
 
                 // Filter and render local media immediately
                 filterMedia();
+
+                // Upgrade any recovery stubs with real media objects now that data is available.
+                enrichDownloadMediaRefs();
 
                 // Don't show message here - will be shown by onUserInteractionEnabled callback
 
@@ -3769,7 +3775,7 @@ function restoreDownloadOverlays() {
         // Immediately update the restored overlay to current progress
         const mediaCard = document.querySelector(`[data-media-id="${download.mediaId}"]`);
         if (!mediaCard) return;
-        const pct = Math.round((download.progress || 0) * 100);
+        const pct = Math.round(download.progress || 0); // progress is already 0-100
         const text = mediaCard.querySelector('.progress-text');
         const fill = mediaCard.querySelector('.progress-fill');
         if (text) text.textContent = `${pct}%`;
@@ -4125,6 +4131,65 @@ function startDownloadTracking(mediaId, taskId) {
     
     // Update download queue
     updateDownloadQueue();
+}
+
+// On page load, query the backend for any downloads that survived a refresh.
+async function recoverActiveDownloads() {
+    try {
+        const resp = await fetch('/api/downloads');
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        const activeTasks = (data.downloads || []).filter(t =>
+            t.status === 'downloading' || t.status === 'pending'
+        );
+        if (activeTasks.length === 0) return;
+
+        for (const task of activeTasks) {
+            if (activeDownloads.has(task.task_id)) continue; // already tracked
+            // Try to find the full media object; fall back to a stub until mediaData loads.
+            const media = (mediaData || []).find(m => m.id === task.media_id) || {
+                id: task.media_id,
+                title: task.media_id,
+                poster_url: ''
+            };
+            activeDownloads.set(task.task_id, {
+                mediaId: task.media_id,
+                taskId: task.task_id,
+                media: media,
+                // backend stores 0-1; frontend/SSE uses 0-100
+                progress: (task.progress || 0) * 100,
+                status: task.status,
+                startTime: Date.now()
+            });
+        }
+
+        // Start SSE stream and build queue drawer if needed.
+        if (!downloadEventSource) {
+            initializeDownloadProgress();
+        } else {
+            createDownloadQueue();
+        }
+        updateDownloadQueue();
+
+        // Attach overlays if cards are already in the DOM.
+        restoreDownloadOverlays();
+    } catch (e) {
+        console.warn('Download recovery failed:', e);
+    }
+}
+
+// Replace stub media refs with real objects once mediaData is populated.
+function enrichDownloadMediaRefs() {
+    if (!hasActiveDownloads() || !mediaData || !mediaData.length) return;
+    let changed = false;
+    activeDownloads.forEach((download) => {
+        if (!download.media || !download.media.poster_url) {
+            const real = mediaData.find(m => m.id === download.mediaId);
+            if (real) { download.media = real; changed = true; }
+        }
+    });
+    if (changed) updateDownloadQueue();
 }
 
 function showDownloadProgressOnPoster(mediaId, taskId) {
