@@ -1,15 +1,14 @@
 [Unit]
 Description=RV Media Player - Jellyfin Offline Media Server
 Documentation=https://github.com/your-repo/rv-media-player
-After=network-online.target graphical-session.target
+After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-# IMPORTANT: VLC needs to open a window on your desktop session.
-# The service user MUST be the same user who is logged into the desktop
-# (the user whose Wayland/X11 session VLC will draw into).
-# Change 'riley' to your actual Linux username.
+# The service runs as the desktop user so VLC can open windows on their
+# Wayland/X11 session.  install.sh sets this automatically from $SUDO_USER.
+# If editing by hand, set User/Group to your login username.
 User=riley
 Group=riley
 SupplementaryGroups=audio video dialout plugdev
@@ -17,37 +16,32 @@ WorkingDirectory=/opt/rv-media-player
 Environment=PYTHONPATH=/opt/rv-media-player
 Environment=FLASK_APP=app/app.py
 Environment=FLASK_ENV=production
-# Display access for VLC — systemd strips these from the user session env.
-# On Pi OS Bookworm (Wayland/Wayfire) the socket is usually wayland-0.
-# On Pi OS Bullseye (X11) only DISPLAY is needed.
+# systemd strips display session variables — inject them so VLC can reach the
+# compositor when launched from this service.
+# DISPLAY=:0 covers X11 and XWayland (Wayland compositors expose XWayland here).
 Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/riley/.Xauthority
+# Wayland: Pi OS Bookworm (Wayfire) uses wayland-0.
 Environment=WAYLAND_DISPLAY=wayland-0
-# XDG_RUNTIME_DIR must match your user's UID.
-# Run 'id -u' as that user to find it; 1000 is the default for the first Pi user.
+# Must match the UID of User= above.  Run 'id -u riley' to confirm.
 Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStartPre=/bin/mkdir -p /opt/rv-media-player/logs /opt/rv-media-player/data
 ExecStart=/opt/rv-media-player/venv/bin/python -m app.app
 ExecReload=/bin/kill -HUP $MAINPID
-Restart=always
+Restart=on-failure
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=rv-media-player
 
-# Security settings
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-# ProtectHome must be off — VLC needs ~/.Xauthority for X11/XWayland auth,
-# and the app needs access to home-directory config files.
+# false — service user needs ~/.Xauthority for X11/XWayland auth.
 ProtectHome=false
 ReadWritePaths=/opt/rv-media-player /media /tmp
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
 
-# Resource limits
 LimitNOFILE=65536
-LimitNPROC=4096
 
 # Process priority
 Nice=-5

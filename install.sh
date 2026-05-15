@@ -43,9 +43,12 @@ CONFIG_DIR="$APP_DIR/config"
 LOGS_DIR="$APP_DIR/logs"
 SERVICE_FILE="/etc/systemd/system/rv-media-player.service"
 
-# Resolve the real user early - needed for the service file and desktop setup
+# Resolve the real user early - needed for the service file and desktop setup.
+# SUDO_USER is set by sudo to the user who invoked it (e.g. riley).
+# The service will run as this user so VLC can open windows on their desktop.
 REAL_USER="${SUDO_USER:-pi}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
+REAL_UID=$(id -u "$REAL_USER" 2>/dev/null || echo "1000")
 
 # Detect Pi config.txt location (Bookworm uses /boot/firmware, older uses /boot)
 if [ -f /boot/firmware/config.txt ]; then
@@ -150,18 +153,14 @@ apt-get install -y \
 
 success "System packages installed"
 
-# ─── Step 2: App user ─────────────────────────────────────────────────────────
-section "App user"
+# ─── Step 2: Service user ─────────────────────────────────────────────────────
+section "Service user"
 
-if ! id "media" &>/dev/null; then
-    log "Creating 'media' system user..."
-    if ! getent group media >/dev/null; then
-        groupadd --system media
-    fi
-    useradd --system --gid media --shell /bin/bash --home "$APP_DIR" media
-fi
-usermod -aG audio,video,dialout,plugdev media 2>/dev/null || true
-success "User 'media' ready"
+# The service runs as the desktop user ($REAL_USER) so that VLC can open
+# windows on their Wayland/X11 session without any display-permission tricks.
+log "Ensuring $REAL_USER is in the required groups for media playback..."
+usermod -aG audio,video,dialout,plugdev "$REAL_USER" 2>/dev/null || true
+success "User '$REAL_USER' ready (UID=$REAL_UID)"
 
 # ─── Step 3: Directories ──────────────────────────────────────────────────────
 section "Directories"
@@ -186,16 +185,12 @@ cp -r "$SCRIPT_DIR/config"    "$APP_DIR/"
 [ -d "$SCRIPT_DIR/systemd" ]  && cp -r "$SCRIPT_DIR/systemd" "$APP_DIR/"
 [ -f "$SCRIPT_DIR/requirements.txt" ] && cp "$SCRIPT_DIR/requirements.txt" "$APP_DIR/"
 
-# Set ownership
-chown -R media:media "$APP_DIR"
+# Set ownership — the service runs as REAL_USER so they own the app files.
+chown -R "$REAL_USER:$REAL_USER" "$APP_DIR"
 chmod -R 755 "$APP_DIR"
 chmod 700 "$CONFIG_DIR"
-# Grant media user ownership of the media directory.
-# This works for regular dirs and for already-mounted USB drives.
-# If the drive isn't mounted yet the dirs still get created and will be
-# accessible once the USB is plugged in (ownership set on the dirs themselves).
-chown -R media:media "$MEDIA_DIR" 2>/dev/null || \
-    warning "Could not chown $MEDIA_DIR - if it is a mount point, re-run: sudo chown -R media:media $MEDIA_DIR"
+chown -R "$REAL_USER:$REAL_USER" "$MEDIA_DIR" 2>/dev/null || \
+    warning "Could not chown $MEDIA_DIR - if it is a mount point, re-run: sudo chown -R $REAL_USER:$REAL_USER $MEDIA_DIR"
 
 success "Files copied"
 
@@ -204,16 +199,16 @@ section "Python environment"
 
 log "Creating virtual environment..."
 [ -d "$VENV_DIR" ] && rm -rf "$VENV_DIR"
-sudo -u media -H python3 -m venv "$VENV_DIR" || error "Failed to create venv"
+sudo -u "$REAL_USER" -H python3 -m venv "$VENV_DIR" || error "Failed to create venv"
 
 log "Upgrading pip..."
-sudo -u media -H bash -c "
+sudo -u "$REAL_USER" -H bash -c "
     source '$VENV_DIR/bin/activate'
     pip install --quiet --no-cache-dir --upgrade pip
 " || error "Failed to upgrade pip"
 
 log "Installing Python dependencies (this takes a few minutes)..."
-sudo -u media -H bash -c "
+sudo -u "$REAL_USER" -H bash -c "
     source '$VENV_DIR/bin/activate'
     pip install --quiet --no-cache-dir -r '$APP_DIR/requirements.txt'
 " || error "Failed to install Python dependencies"
@@ -253,11 +248,11 @@ cat > "$CONFIG_DIR/app_config.json" << CONF
 CONF
 
 chmod 600 "$CONFIG_DIR/app_config.json"
-chown media:media "$CONFIG_DIR/app_config.json"
-chown -R media:media "$CONFIG_DIR"
+chown "$REAL_USER:$REAL_USER" "$CONFIG_DIR/app_config.json"
+chown -R "$REAL_USER:$REAL_USER" "$CONFIG_DIR"
 
 # Encrypt sensitive fields via the app's own config manager (if supported)
-sudo -u media -H bash -c "
+sudo -u "$REAL_USER" -H bash -c "
     source '$VENV_DIR/bin/activate'
     python3 - << 'PY' 2>/dev/null || true
 from config.configuration import Configuration
@@ -281,7 +276,7 @@ export FLASK_ENV=production
 exec python -m app.app
 RUN
 chmod +x "$APP_DIR/run.sh"
-chown media:media "$APP_DIR/run.sh"
+chown "$REAL_USER:$REAL_USER" "$APP_DIR/run.sh"
 
 # ─── Step 8: Systemd service ──────────────────────────────────────────────────
 section "Systemd service"
@@ -303,17 +298,24 @@ $MOUNT_DEP
 
 [Service]
 Type=simple
-User=media
-Group=media
+# Runs as the desktop user so VLC can open windows on their display session.
+User=$REAL_USER
+Group=$REAL_USER
 SupplementaryGroups=audio video dialout plugdev
 WorkingDirectory=$APP_DIR
 Environment=PYTHONPATH=$APP_DIR
 Environment=FLASK_ENV=production
-# VLC needs a display to open its GUI window on the Pi desktop
+# systemd strips display session variables — inject them explicitly so VLC
+# can reach the compositor when launched from this service.
+# DISPLAY=:0 covers both X11 and XWayland (Wayland sessions expose an
+# XWayland server at :0 for X11 clients).
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=$REAL_HOME/.Xauthority
+# Wayland: Pi OS Bookworm (Wayfire) uses wayland-0.
+Environment=WAYLAND_DISPLAY=wayland-0
+# XDG_RUNTIME_DIR must match the UID of User= above.
+Environment=XDG_RUNTIME_DIR=/run/user/$REAL_UID
 ExecStartPre=/bin/mkdir -p $APP_DIR/logs $APP_DIR/data
-ExecStartPre=/bin/chown media:media $APP_DIR/logs $APP_DIR/data
 ExecStart=$VENV_DIR/bin/python -m app.app
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=on-failure
@@ -325,7 +327,8 @@ SyslogIdentifier=rv-media-player
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=read-only
+# ProtectHome=false — service user needs ~/.Xauthority for X11/XWayland auth.
+ProtectHome=false
 ReadWritePaths=$APP_DIR $MEDIA_DIR /tmp
 
 LimitNOFILE=65536
@@ -371,11 +374,11 @@ SYSCTL
     sysctl -p /etc/sysctl.d/99-rv-media-player.conf >/dev/null 2>&1 || true
 
     # Process priority limits
-    cat > /etc/security/limits.d/rv-media-player.conf << 'LIMITS'
-media soft nice -10
-media hard nice -10
-media soft rtprio 10
-media hard rtprio 10
+    cat > /etc/security/limits.d/rv-media-player.conf << LIMITS
+$REAL_USER soft nice -10
+$REAL_USER hard nice -10
+$REAL_USER soft rtprio 10
+$REAL_USER hard rtprio 10
 LIMITS
 
     # Disable services not needed on a headless media server
@@ -421,23 +424,8 @@ LAUNCH
 
 chmod +x "$APP_DIR/launch.sh"
 
-# Grant the 'media' service user access to the Pi's X display so VLC can open windows.
-# Uses an autostart entry so the grant is re-applied each time the desktop session starts.
-AUTOSTART_DIR="$REAL_HOME/.config/autostart"
-mkdir -p "$AUTOSTART_DIR"
-cat > "$AUTOSTART_DIR/rv-media-xhost.desktop" << XHOST
-[Desktop Entry]
-Type=Application
-Name=RV Media Player Display Access
-Comment=Allow media service user to open VLC on the local display
-Exec=xhost +local:media
-Hidden=false
-NoDisplay=true
-X-GNOME-Autostart-enabled=true
-XHOST
-chown -R "$REAL_USER:$REAL_USER" "$AUTOSTART_DIR"
-# Also apply immediately for this session (best-effort - may fail if no display)
-DISPLAY=:0 xhost +local:media 2>/dev/null || true
+# No xhost grant needed — the service already runs as $REAL_USER, the same
+# account that owns the Wayland/X11 session.
 
 DESKTOP_DIR="$REAL_HOME/Desktop"
 mkdir -p "$DESKTOP_DIR"

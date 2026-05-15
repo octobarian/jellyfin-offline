@@ -2,18 +2,16 @@
 VLC Controller Service
 
 Handles VLC media player integration for local file playback and streaming.
-Provides methods for launching VLC processes, managing playback, and detecting VLC installation.
 """
 
 import glob
 import logging
 import os
-import shlex
 import subprocess
 import platform
 import shutil
 import time
-from typing import Optional, List, Tuple
+from typing import Optional, List
 from pathlib import Path
 
 
@@ -24,10 +22,9 @@ class VLCController:
     """Controller for VLC media player integration."""
 
     def __init__(self, vlc_path: Optional[str] = None):
-        self.vlc_path: Optional[str] = vlc_path  # may be overridden by detection
+        self.vlc_path: Optional[str] = vlc_path
         self.current_process: Optional[subprocess.Popen] = None
         if vlc_path:
-            # Caller supplied an explicit path - use it directly if it exists.
             if not os.path.exists(vlc_path):
                 logger.warning(f"Supplied VLC path does not exist: {vlc_path}")
                 self.vlc_path = None
@@ -39,355 +36,195 @@ class VLCController:
         system = platform.system().lower()
 
         if system == "windows":
-            # Common VLC installation paths on Windows
             possible_paths = [
                 r"C:\Program Files\VideoLAN\VLC\vlc.exe",
                 r"C:\Program Files (x86)\VideoLAN\VLC\vlc.exe",
                 os.path.expanduser(r"~\AppData\Local\Programs\VLC\vlc.exe")
             ]
-
             for path in possible_paths:
                 if os.path.exists(path):
                     self.vlc_path = path
                     return
-
-            # Try to find VLC in PATH
             vlc_in_path = shutil.which("vlc")
             if vlc_in_path:
                 self.vlc_path = vlc_in_path
 
         elif system == "linux":
-            # Try common Linux paths and PATH
-            possible_paths = [
-                "/usr/bin/vlc",
-                "/usr/local/bin/vlc",
-                "/snap/bin/vlc"
-            ]
-
+            possible_paths = ["/usr/bin/vlc", "/usr/local/bin/vlc", "/snap/bin/vlc"]
             for path in possible_paths:
                 if os.path.exists(path):
                     self.vlc_path = path
                     return
-
-            # Try to find VLC in PATH
             vlc_in_path = shutil.which("vlc")
             if vlc_in_path:
                 self.vlc_path = vlc_in_path
 
-        elif system == "darwin":  # macOS
-            possible_paths = [
-                "/Applications/VLC.app/Contents/MacOS/VLC"
-            ]
-
+        elif system == "darwin":
+            possible_paths = ["/Applications/VLC.app/Contents/MacOS/VLC"]
             for path in possible_paths:
                 if os.path.exists(path):
                     self.vlc_path = path
                     return
-
             vlc_in_path = shutil.which("vlc")
             if vlc_in_path:
                 self.vlc_path = vlc_in_path
 
     def is_vlc_installed(self) -> bool:
-        """Check if VLC is installed and accessible."""
         if self.vlc_path is None:
             return False
-        # For paths found via shutil.which, they should exist
         return os.path.exists(self.vlc_path) or shutil.which(os.path.basename(self.vlc_path)) is not None
 
     def install_vlc(self) -> bool:
-        """
-        Attempt to install VLC automatically.
-        Returns True if installation was successful or VLC is already installed.
-        """
         if self.is_vlc_installed():
             return True
-
         system = platform.system().lower()
-
         try:
             if system == "linux":
-                # Try different package managers
-                package_managers = [
-                    ["pacman", "-S", "--noconfirm", "vlc"],  # Arch Linux
-                    ["apt-get", "install", "-y", "vlc"],     # Debian/Ubuntu
-                    ["yum", "install", "-y", "vlc"],         # RHEL/CentOS
-                    ["dnf", "install", "-y", "vlc"],         # Fedora
-                ]
-
-                for cmd in package_managers:
+                for cmd in [
+                    ["apt-get", "install", "-y", "vlc"],
+                    ["pacman", "-S", "--noconfirm", "vlc"],
+                    ["dnf", "install", "-y", "vlc"],
+                ]:
                     if shutil.which(cmd[0]):
                         result = subprocess.run(cmd, capture_output=True, text=True)
                         if result.returncode == 0:
                             self._detect_vlc_installation()
                             return self.is_vlc_installed()
-
-            elif system == "darwin":  # macOS
-                # Try Homebrew
+            elif system == "darwin":
                 if shutil.which("brew"):
                     result = subprocess.run(["brew", "install", "--cask", "vlc"],
                                           capture_output=True, text=True)
                     if result.returncode == 0:
                         self._detect_vlc_installation()
                         return self.is_vlc_installed()
-
-            elif system == "windows":
-                # On Windows, we can't easily auto-install, so just return False
-                # User will need to install VLC manually
-                return False
-
         except Exception:
             pass
-
         return False
 
-    # ── Display / session helpers ──────────────────────────────────────────────
+    # ── Display environment helpers ────────────────────────────────────────────
 
     @staticmethod
-    def _find_graphical_session() -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    def _vlc_env() -> dict:
         """
-        Use loginctl to find the logged-in user who owns a graphical desktop
-        session (X11 or Wayland).
+        Build the subprocess environment for VLC.
 
-        Returns (username, uid_str, session_type) or (None, None, None).
-        """
-        try:
-            sessions = subprocess.run(
-                ["loginctl", "list-sessions", "--no-legend"],
-                capture_output=True, text=True, timeout=5
-            )
-            for line in sessions.stdout.splitlines():
-                parts = line.split()
-                if len(parts) < 3:
-                    continue
-                session_id, uid_str, user = parts[0], parts[1], parts[2]
-                try:
-                    props = subprocess.run(
-                        ["loginctl", "show-session", session_id,
-                         "--property=Type", "--property=State"],
-                        capture_output=True, text=True, timeout=5
-                    )
-                    prop_map = dict(
-                        p.split("=", 1) for p in props.stdout.splitlines() if "=" in p
-                    )
-                    session_type = prop_map.get("Type", "")
-                    state = prop_map.get("State", "")
-                    if session_type in ("x11", "wayland") and state in ("active", "online"):
-                        logger.debug(
-                            f"VLC: graphical session found — user={user} "
-                            f"uid={uid_str} type={session_type}"
-                        )
-                        return user, uid_str, session_type
-                except Exception:
-                    continue
-        except Exception:
-            pass
-        return None, None, None
+        systemd strips DISPLAY, WAYLAND_DISPLAY, and XDG_RUNTIME_DIR from
+        service environments.  We detect them from the filesystem so VLC can
+        reach the compositor even when launched from a system service running
+        as the desktop user.
 
-    @staticmethod
-    def _vlc_env(runtime_dir: Optional[str] = None,
-                 wayland_display: Optional[str] = None) -> dict:
-        """
-        Build the environment for the VLC subprocess.
-
-        When the server runs as a systemd service user (e.g. 'media') it has no
-        DISPLAY, WAYLAND_DISPLAY, or XDG_RUNTIME_DIR.  We detect the active
-        graphical session's runtime directory from the filesystem so VLC can
-        reach the compositor.
+        NOTE: this does NOT attempt to switch users.  The service must already
+        run as the logged-in desktop user (configured by install.sh).  See the
+        systemd service file for how that is set up.
         """
         env = os.environ.copy()
 
         # ── XDG_RUNTIME_DIR ──────────────────────────────────────────────────
-        # Prefer caller-supplied value (from loginctl detection), then inherited
-        # env, then filesystem search.
-        if runtime_dir and os.path.isdir(runtime_dir):
-            env["XDG_RUNTIME_DIR"] = runtime_dir
-        elif not env.get("XDG_RUNTIME_DIR") or not os.path.isdir(env.get("XDG_RUNTIME_DIR", "")):
-            # Search /run/user/* for the directory that has a Wayland socket
-            # (meaning a compositor is running for that user).
+        # systemd drops this; detect it from /run/user/<uid> for the current user,
+        # then fall back to scanning all /run/user/* dirs for one with a Wayland socket.
+        rt = env.get("XDG_RUNTIME_DIR", "")
+        if not rt or not os.path.isdir(rt):
+            # Current user's runtime dir (works when service User= matches desktop user)
+            try:
+                uid_dir = f"/run/user/{os.getuid()}"
+                if os.path.isdir(uid_dir):
+                    rt = uid_dir
+            except Exception:
+                pass
+
+        if not rt or not os.path.isdir(rt):
+            # Scan all /run/user/* — prefer the one with a live Wayland socket
             candidates = sorted(
                 glob.glob("/run/user/*/"),
                 key=lambda p: os.path.getmtime(p.rstrip("/")),
                 reverse=True,
             )
-            found = None
             for candidate in candidates:
                 candidate = candidate.rstrip("/")
-                wayland_sockets = [
-                    f for f in glob.glob(os.path.join(candidate, "wayland-*"))
-                    if not f.endswith(".lock")
-                ]
-                if wayland_sockets:
-                    found = candidate
+                has_wayland = any(
+                    not f.endswith(".lock")
+                    for f in glob.glob(os.path.join(candidate, "wayland-*"))
+                )
+                if has_wayland:
+                    rt = candidate
                     break
-            if not found:
-                # Fall back to any existing /run/user/ dir (X11 session)
-                for candidate in candidates:
-                    candidate = candidate.rstrip("/")
-                    if os.path.isdir(candidate):
-                        found = candidate
-                        break
-            if not found:
-                # Last resort: current process UID
-                try:
-                    uid = os.getuid()
-                    fallback = f"/run/user/{uid}"
-                    if os.path.isdir(fallback):
-                        found = fallback
-                except Exception:
-                    pass
-            if found:
-                env["XDG_RUNTIME_DIR"] = found
+            if not rt and candidates:
+                rt = candidates[0].rstrip("/")
+
+        if rt:
+            env["XDG_RUNTIME_DIR"] = rt
 
         # ── WAYLAND_DISPLAY ──────────────────────────────────────────────────
-        # Detect the actual socket name from XDG_RUNTIME_DIR rather than
-        # hard-coding 'wayland-1' (Pi OS Bookworm uses 'wayland-0').
-        if wayland_display:
-            env["WAYLAND_DISPLAY"] = wayland_display
-        elif not env.get("WAYLAND_DISPLAY"):
-            rt = env.get("XDG_RUNTIME_DIR", "")
-            if rt:
-                sockets = sorted([
-                    f for f in glob.glob(os.path.join(rt, "wayland-*"))
-                    if not f.endswith(".lock")
-                ])
-                if sockets:
-                    env["WAYLAND_DISPLAY"] = os.path.basename(sockets[0])
+        # Detect actual socket name from XDG_RUNTIME_DIR.
+        # Pi OS Bookworm uses wayland-0, not wayland-1.
+        if not env.get("WAYLAND_DISPLAY") and rt:
+            sockets = sorted(
+                f for f in glob.glob(os.path.join(rt, "wayland-*"))
+                if not f.endswith(".lock")
+            )
+            if sockets:
+                env["WAYLAND_DISPLAY"] = os.path.basename(sockets[0])
 
         # ── DISPLAY (X11 / XWayland) ─────────────────────────────────────────
         env.setdefault("DISPLAY", ":0")
 
         # ── XAUTHORITY ───────────────────────────────────────────────────────
         if not env.get("XAUTHORITY"):
-            candidates = [os.path.expanduser("~/.Xauthority")]
-            candidates.extend(glob.glob("/home/*/.Xauthority"))
-            candidates.append("/root/.Xauthority")
-            for c in candidates:
+            for c in [os.path.expanduser("~/.Xauthority")] + glob.glob("/home/*/.Xauthority"):
                 if os.path.exists(c):
                     env["XAUTHORITY"] = c
                     break
 
         logger.debug(
-            f"VLC env: DISPLAY={env.get('DISPLAY')} "
-            f"WAYLAND_DISPLAY={env.get('WAYLAND_DISPLAY')} "
-            f"XDG_RUNTIME_DIR={env.get('XDG_RUNTIME_DIR')} "
-            f"XAUTHORITY={env.get('XAUTHORITY', '<not set>')}"
+            "VLC env: DISPLAY=%s WAYLAND_DISPLAY=%s XDG_RUNTIME_DIR=%s XAUTHORITY=%s",
+            env.get("DISPLAY"), env.get("WAYLAND_DISPLAY"),
+            env.get("XDG_RUNTIME_DIR"), env.get("XAUTHORITY", "<not set>"),
         )
         return env
 
     @staticmethod
-    def _linux_vout_flags(runtime_dir: Optional[str] = None) -> List[str]:
+    def _linux_vout_flags() -> List[str]:
         """
-        Video-output flags for Raspberry Pi / Linux.
+        Choose video output plugin for Raspberry Pi / Linux.
 
-        Checks both the inherited process environment AND the actual filesystem
-        for Wayland sockets — critical when Flask runs as a systemd service
+        Checks both the inherited process environment AND the filesystem for a
+        live Wayland socket — critical when Flask runs as a systemd service
         whose environment has been stripped of session variables.
 
-        - Wayland detected → return [] (let VLC auto-select wl or gl output)
-        - X11 only         → return ['--vout=xcb_x11']  (avoids black window on Pi)
+        Wayland socket found → [] (VLC auto-selects wl/gl output)
+        X11 only             → ['--vout=xcb_x11']  (avoids black window on Pi)
         """
-        # Check Flask process env first (works for terminal launches)
-        is_wayland = (
-            bool(os.environ.get("WAYLAND_DISPLAY")) or
-            os.environ.get("XDG_SESSION_TYPE") == "wayland"
-        )
-
-        # Also probe the filesystem — catches systemd service with stripped env
-        if not is_wayland:
-            search_dirs = []
-            if runtime_dir:
-                search_dirs.append(runtime_dir)
-            search_dirs.extend(glob.glob("/run/user/*/"))
-
-            for rdir in search_dirs:
-                sockets = [
-                    f for f in glob.glob(os.path.join(rdir.rstrip("/"), "wayland-*"))
-                    if not f.endswith(".lock")
-                ]
-                if sockets:
-                    is_wayland = True
-                    break
-
-        if is_wayland:
-            logger.debug("VLC: Wayland session detected — auto-detecting video output")
+        # Fast path: session type set in inherited environment
+        if (os.environ.get("WAYLAND_DISPLAY") or
+                os.environ.get("XDG_SESSION_TYPE") == "wayland"):
+            logger.debug("VLC: Wayland (env) — auto video output")
             return []
 
-        logger.debug("VLC: X11 session — using xcb_x11 output")
+        # Slow path: check the filesystem for a live Wayland socket
+        search = [f"/run/user/{os.getuid()}"] if os.getuid() != 0 else []
+        search += glob.glob("/run/user/*/")
+        for rdir in search:
+            sockets = [
+                f for f in glob.glob(os.path.join(rdir.rstrip("/"), "wayland-*"))
+                if not f.endswith(".lock")
+            ]
+            if sockets:
+                logger.debug("VLC: Wayland (socket found at %s) — auto video output", rdir)
+                return []
+
+        logger.debug("VLC: X11 — using xcb_x11 output")
         return ["--vout=xcb_x11"]
 
-    def _build_cmd(self, base_cmd: List[str], current_user: str,
-                   display_user: Optional[str]) -> List[str]:
-        """
-        If we're running as a service user that differs from the desktop user,
-        wrap the VLC command in 'su' so it runs under the display owner's account.
-
-        This handles the common Pi setup where the web service runs as a
-        dedicated user (e.g. 'media') but the Wayland/X11 session belongs to
-        the logged-in desktop user (e.g. 'riley').
-
-        Requires that the service user can run 'su <display_user> -c ...'
-        without a password, typically via a sudoers NOPASSWD rule or by running
-        the service as root.
-        """
-        if not display_user or display_user == current_user:
-            return base_cmd
-
-        # Build an inline env string so the sub-shell gets display variables
-        env = self._vlc_env()
-        display_env_pairs = []
-        for key in ("DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "XAUTHORITY"):
-            val = env.get(key, "")
-            if val:
-                display_env_pairs.append(f"{key}={shlex.quote(val)}")
-
-        vlc_cmd_str = " ".join(shlex.quote(c) for c in base_cmd)
-        full_cmd_str = " ".join(display_env_pairs + [vlc_cmd_str])
-
-        logger.info(
-            f"VLC: running as '{display_user}' (service user is '{current_user}')"
-        )
-        return ["su", display_user, "-c", full_cmd_str]
-
     def _launch_vlc(self, cmd: List[str]) -> bool:
-        """
-        Core VLC launch logic shared by play_local_file and play_stream.
+        """Core launch logic shared by play_local_file and play_stream."""
+        env = self._vlc_env()
 
-        Handles display user detection, environment setup, and stderr capture
-        for diagnostics on immediate exit.
-        """
-        # ── Detect who owns the graphical session ────────────────────────────
-        display_user, display_uid_str, session_type = None, None, None
-        runtime_dir_override = None
-
+        # Prepend Linux video-output flags
         if platform.system().lower() == "linux":
-            display_user, display_uid_str, session_type = self._find_graphical_session()
-            if display_uid_str:
-                candidate = f"/run/user/{display_uid_str}"
-                if os.path.isdir(candidate):
-                    runtime_dir_override = candidate
-
-        # ── Video output flags (Linux only) ──────────────────────────────────
-        if platform.system().lower() == "linux":
-            vout = self._linux_vout_flags(runtime_dir=runtime_dir_override)
-            # Insert vout flags right after the vlc binary (index 0)
+            vout = self._linux_vout_flags()
             cmd = [cmd[0]] + vout + cmd[1:]
 
-        # ── Wrap in su if service user ≠ display user ────────────────────────
-        import pwd
-        try:
-            current_user = pwd.getpwuid(os.getuid()).pw_name
-        except Exception:
-            current_user = str(os.getuid())
-
-        final_cmd = self._build_cmd(cmd, current_user, display_user)
-
-        env = self._vlc_env(
-            runtime_dir=runtime_dir_override,
-            wayland_display=None,  # auto-detect from runtime dir
-        )
-
-        logger.info(f"Launching VLC: {' '.join(final_cmd)}")
+        logger.info("Launching VLC: %s", " ".join(cmd))
 
         try:
             startupinfo = None
@@ -397,11 +234,11 @@ class VLCController:
                 startupinfo.wShowWindow = subprocess.SW_SHOW
 
             self.current_process = subprocess.Popen(
-                final_cmd,
+                cmd,
                 stdout=subprocess.DEVNULL,
-                # Capture stderr so we can log it if VLC exits immediately.
-                # VLC writes only a few KB at startup; the 64 KB pipe buffer
-                # is ample for normal playback.
+                # Pipe stderr so we can log it if VLC exits immediately.
+                # VLC rarely writes more than a few KB to stderr during playback,
+                # so the 64 KB pipe buffer is safe for long-running processes.
                 stderr=subprocess.PIPE,
                 env=env,
                 creationflags=(
@@ -411,49 +248,40 @@ class VLCController:
                 startupinfo=startupinfo,
             )
 
-            # Give VLC time to connect to the display.  Use 1.5 s on Linux
-            # because Wayland connection failures can take up to ~1 s to surface.
+            # On Linux, allow 1.5 s for VLC to connect to the display server
+            # (Wayland/X11 connection failures can take ~1 s to surface).
             wait_time = 1.5 if platform.system().lower() == "linux" else 0.4
             time.sleep(wait_time)
 
             if self.current_process.poll() is not None:
-                # VLC exited — read stderr for a useful error message
                 stderr_out = b""
                 try:
                     stderr_out = self.current_process.stderr.read()
                 except Exception:
                     pass
                 logger.error(
-                    f"VLC exited immediately (code={self.current_process.returncode}). "
-                    f"Stderr: {stderr_out.decode('utf-8', errors='replace').strip()[:800]}"
+                    "VLC exited immediately (code=%d). Stderr: %s",
+                    self.current_process.returncode,
+                    stderr_out.decode("utf-8", errors="replace").strip()[:800],
                 )
                 return False
 
             return True
 
         except Exception as e:
-            logger.error(f"Failed to launch VLC: {e}")
+            logger.error("Failed to launch VLC: %s", e)
             return False
+
+    # ── Public playback API ────────────────────────────────────────────────────
 
     def play_local_file(self, file_path: str, fullscreen: bool = False,
                         title: Optional[str] = None) -> bool:
-        """
-        Play a local media file using VLC.
-
-        Args:
-            file_path: Path to the local media file
-            fullscreen: Whether to start VLC in fullscreen mode
-            title: Window/playlist title shown in VLC
-
-        Returns:
-            True if VLC was launched successfully, False otherwise
-        """
+        """Play a local media file using VLC."""
         if not self.is_vlc_installed():
             logger.error("VLC not installed")
             return False
-
         if not os.path.exists(file_path):
-            logger.error(f"File not found: {file_path}")
+            logger.error("File not found: %s", file_path)
             return False
 
         self.stop_playback()
@@ -470,17 +298,7 @@ class VLCController:
 
     def play_stream(self, stream_url: str, fullscreen: bool = False,
                     title: Optional[str] = None) -> bool:
-        """
-        Play a streaming URL using VLC.
-
-        Args:
-            stream_url: URL of the stream to play
-            fullscreen: Whether to start VLC in fullscreen mode
-            title: Window/playlist title shown in VLC
-
-        Returns:
-            True if VLC was launched successfully, False otherwise
-        """
+        """Play a streaming URL using VLC."""
         if not self.is_vlc_installed():
             logger.error("VLC not installed")
             return False
@@ -492,71 +310,48 @@ class VLCController:
             cmd.append("--fullscreen")
         if title:
             cmd.extend(["--meta-title", title])
-        cmd.extend([
-            "--play-and-exit",
-            "--network-caching", "3000",
-        ])
+        cmd.extend(["--play-and-exit", "--network-caching", "3000"])
         cmd.append(stream_url)
 
         return self._launch_vlc(cmd)
 
     def stop_playback(self) -> bool:
-        """
-        Stop the current VLC playback.
-
-        Returns:
-            True if playback was stopped successfully, False otherwise
-        """
         if self.current_process is None:
             return True
-
         try:
             self.current_process.terminate()
-
             try:
                 self.current_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self.current_process.kill()
                 self.current_process.wait()
-
             self.current_process = None
             return True
-
         except Exception:
             return False
 
     def is_playing(self) -> bool:
-        """Check if VLC is currently playing."""
         if self.current_process is None:
             return False
         return self.current_process.poll() is None
 
     def get_vlc_version(self) -> Optional[str]:
-        """Get the version of the installed VLC."""
         if not self.is_vlc_installed():
             return None
-
         try:
             result = subprocess.run(
                 [self.vlc_path, "--version"],
-                capture_output=True,
-                text=True,
-                timeout=10
+                capture_output=True, text=True, timeout=10
             )
-
             if result.returncode == 0:
-                lines = result.stdout.split('\n')
-                for line in lines:
+                for line in result.stdout.split('\n'):
                     if 'VLC media player' in line:
                         return line.strip()
-
         except Exception:
             pass
-
         return None
 
     def get_supported_formats(self) -> List[str]:
-        """Get list of supported media formats."""
         return [
             '.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm',
             '.mp3', '.wav', '.flac', '.aac', '.ogg', '.wma',
@@ -565,5 +360,4 @@ class VLCController:
         ]
 
     def cleanup(self) -> None:
-        """Clean up resources and stop any running processes."""
         self.stop_playback()
